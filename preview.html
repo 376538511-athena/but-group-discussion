@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>组会文献讨论平台 - 交互预览</title>
+<style>
+  :root {
+    --oxford: #002147;
+    --oxford-l: #003d7a;
+    --ok: #52c41a;
+    --err: #f5222d;
+    --bg: #f5f7fa;
+    --bdr: #f0f0f0;
+    --txt: #333;
+    --txt2: #888;
+    --link: #1a0dab;
+    --green: #2e7d32;
+    --r: 6px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;font-size:14px;color:var(--txt);background:var(--bg)}
+  a{text-decoration:none;color:var(--oxford)}
+  ::selection{background:rgba(0,33,71,.15)}
+
+  /* DEMO BANNER */
+  .demo-banner{position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,var(--oxford),var(--oxford-l));color:#fff;text-align:center;padding:8px 16px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:12px}
+  .demo-banner b{font-size:14px}
+  .demo-banner .demo-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .demo-nav{display:flex;gap:2px;margin-left:20px}
+  .demo-nav button{background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.8);padding:5px 14px;border-radius:20px;cursor:pointer;font-size:12px;transition:.2s}
+  .demo-nav button:hover{background:rgba(255,255,255,.25);color:#fff}
+  .demo-nav button.active{background:#fff;color:var(--oxford);font-weight:600}
+
+  .page{display:none;padding-top:40px;min-height:100vh}
+  .page.active{display:block;animation:fadeIn .3s}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* LOGIN / REGISTER */
+  .auth-bg{min-height:100vh;background:linear-gradient(135deg,#001a36 0%,#002147 30%,#003d7a 70%,#0056a8 100%);display:flex;justify-content:center;align-items:center;padding:24px;position:relative;overflow:hidden}
+  .auth-bg::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:rgba(255,255,255,.03);top:-200px;right:-100px}
+  .auth-bg::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.02);bottom:-150px;left:-80px}
+  .auth-card{background:#fff;border-radius:16px;padding:40px 36px;width:420px;max-width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative;z-index:1}
+  .auth-card.wide{width:480px}
+  .auth-card h2{color:var(--oxford);text-align:center;margin-bottom:4px;font-size:22px}
+  .auth-card .sub{text-align:center;color:var(--txt2);display:block;margin-bottom:28px;font-size:13px;letter-spacing:.5px}
+  .fg{margin-bottom:18px}
+  .fg label{display:block;margin-bottom:5px;font-weight:500;font-size:13px;color:#555}
+  .fi{width:100%;padding:10px 14px;border:1px solid #d9d9d9;border-radius:var(--r);font-size:14px;transition:.2s;outline:none}
+  .fi:focus{border-color:var(--oxford);box-shadow:0 0 0 3px rgba(0,33,71,.08)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border-radius:var(--r);border:none;cursor:pointer;font-size:14px;font-weight:500;transition:.15s}
+  .btn-p{background:var(--oxford);color:#fff;box-shadow:0 2px 0 rgba(0,33,71,.15)}
+  .btn-p:hover{background:var(--oxford-l);transform:translateY(-1px);box-shadow:0 4px 8px rgba(0,33,71,.2)}
+  .btn-p:active{transform:none}
+  .btn-w{width:100%}
+  .btn-sm{padding:5px 14px;font-size:13px}
+  .btn-ghost{background:none;border:1px solid #d9d9d9;color:var(--txt)}
+  .btn-ghost:hover{border-color:var(--oxford);color:var(--oxford)}
+  .btn-txt{background:none;border:none;color:var(--oxford);cursor:pointer;padding:4px 8px;font-size:13px}
+  .btn-txt.danger{color:var(--err)}
+
+  /* LAYOUT */
+  .layout{display:flex;min-height:calc(100vh - 40px)}
+  .side{width:230px;background:#fff;border-right:1px solid var(--bdr);flex-shrink:0;box-shadow:2px 0 8px rgba(0,0,0,.03)}
+  .side-logo{height:58px;display:flex;align-items:center;padding:0 20px;border-bottom:1px solid var(--bdr);gap:10px}
+  .side-logo .logo-icon{width:32px;height:32px;background:var(--oxford);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}
+  .side-logo span{font-size:16px;font-weight:600;color:var(--oxford)}
+  .side-menu{padding:12px 8px}
+  .side-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;transition:.15s;border-radius:var(--r);color:#555;font-size:14px;margin-bottom:2px}
+  .side-item:hover{background:#f5f5f5;color:var(--txt)}
+  .side-item.on{background:#e6f0ff;color:var(--oxford);font-weight:500}
+  .side-item svg{width:18px;height:18px;flex-shrink:0}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:58px;background:#fff;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 24px;box-shadow:0 1px 4px rgba(0,0,0,.03)}
+  .uinfo{display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 8px;border-radius:var(--r);transition:.15s}
+  .uinfo:hover{background:#f5f5f5}
+  .av{width:34px;height:34px;border-radius:50%;background:var(--oxford);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0}
+  .cont{padding:24px;flex:1;overflow-y:auto}
+
+  /* STAT CARDS */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+  .sc{background:#fff;border-radius:var(--r);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05);transition:.2s}
+  .sc:hover{box-shadow:0 4px 12px rgba(0,0,0,.08);transform:translateY(-2px)}
+  .sc .sl{font-size:13px;color:var(--txt2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .sc .sv{font-size:30px;font-weight:700;color:var(--oxford);line-height:1}
+  .sc .sv.red{color:var(--err)}
+  .sc .sv.grn{color:var(--ok)}
+
+  /* CARDS */
+  .card{background:#fff;border-radius:var(--r);margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden}
+  .card-h{padding:14px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;font-weight:500;font-size:15px}
+  .card-b{padding:20px}
+
+  /* TAGS */
+  .tag{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:4px;font-size:12px;font-weight:500;white-space:nowrap}
+  .t-red{background:#fff1f0;color:var(--err);border:1px solid #ffa39e}
+  .t-grn{background:#f6ffed;color:var(--ok);border:1px solid #b7eb8f}
+  .t-blue{background:#e6f7ff;color:#1890ff;border:1px solid #91d5ff}
+  .t-gray{background:#f5f5f5;color:#999;border:1px solid #d9d9d9}
+
+  /* PAPER LIST */
+  .sbar{display:flex;align-items:center;gap:12px;padding:12px 16px;flex-wrap:wrap}
+  .si{padding:9px 14px;border:1px solid #d9d9d9;border-radius:var(--r);width:320px;font-size:14px;outline:none;transition:.2s}
+  .si:focus{border-color:var(--oxford);box-shadow:0 0 0 3px rgba(0,33,71,.06)}
+  .sel{padding:8px 12px;border:1px solid #d9d9d9;border-radius:var(--r);background:#fff;font-size:13px;color:var(--txt);cursor:pointer}
+  .pi{padding:16px 20px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:flex-start;cursor:pointer;transition:.15s}
+  .pi:hover{background:#fafbfc}
+  .pi:last-child{border-bottom:none}
+  .pi.bl{border-left:3px solid var(--oxford)}
+  .pi.br{border-left:3px solid var(--err)}
+  .pi.bg{border-left:3px solid var(--ok)}
+  .pt{font-size:17px;color:var(--link);font-weight:500;margin-bottom:5px;line-height:1.4}
+  .pi:hover .pt{text-decoration:underline}
+  .pa{color:var(--green);font-size:13px;margin-bottom:4px}
+  .pab{color:var(--txt2);font-size:13px;margin-bottom:6px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .pm{font-size:12px;color:var(--txt2);display:flex;gap:16px;flex-wrap:wrap}
+
+  /* DETAIL */
+  .dh{padding:24px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+  .dt{font-size:22px;font-weight:600;color:var(--oxford);margin-bottom:8px;line-height:1.4}
+  .da{font-size:15px;color:var(--green);margin-bottom:12px}
+  .dab{color:#555;font-size:14px;line-height:1.7;margin-bottom:16px}
+  .dm{font-size:13px;color:var(--txt2);display:flex;gap:20px;flex-wrap:wrap}
+  .btn-dl{background:var(--oxford);color:#fff;padding:12px 28px;border-radius:var(--r);border:none;font-size:15px;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;height:fit-content;box-shadow:0 2px 0 rgba(0,33,71,.15);transition:.15s}
+  .btn-dl:hover{background:var(--oxford-l);transform:translateY(-1px)}
+
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .pcol h4{margin-bottom:10px;font-size:14px;display:flex;align-items:center;gap:6px}
+  .pcol h4.ok{color:var(--ok)}
+  .pcol h4.no{color:var(--err)}
+  .mtags{display:flex;flex-wrap:wrap;gap:6px}
+
+  /* COMMENTS */
+  .ci{display:flex;gap:12px;margin-bottom:20px}
+  .cb{flex:1;min-width:0}
+  .ch{margin-bottom:4px}
+  .ch .n{font-weight:600;margin-right:8px}
+  .ch .m{font-size:12px;color:var(--txt2)}
+  .cc{line-height:1.65;margin-bottom:8px;color:#333}
+  .ca{display:flex;gap:16px}
+  .ca button{background:none;border:none;cursor:pointer;color:var(--txt2);font-size:13px;display:flex;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;transition:.15s}
+  .ca button:hover{background:#f0f0f0;color:var(--oxford)}
+  .ca button.liked{color:var(--oxford);font-weight:600}
+  .rt{margin-left:46px;border-left:2px solid #e8e8e8;padding-left:16px;margin-top:12px}
+  .ce{display:flex;gap:12px;margin-top:20px}
+  .ta{width:100%;padding:12px 14px;border:1px solid #d9d9d9;border-radius:var(--r);font-size:14px;resize:vertical;min-height:80px;font-family:inherit;outline:none;transition:.2s}
+  .ta:focus{border-color:var(--oxford);box-shadow:0 0 0 3px rgba(0,33,71,.06)}
+
+  /* TABLE */
+  .stbl{width:100%;border-collapse:collapse;font-size:13px}
+  .stbl th,.stbl td{padding:10px 12px;border:1px solid var(--bdr);text-align:center}
+  .stbl th{background:#fafafa;font-weight:500;font-size:12px;color:#666}
+  .stbl td:first-child{text-align:left;font-weight:500;width:100px}
+  .stbl .ck{color:var(--ok);font-size:18px}
+  .stbl .cx{color:var(--err);font-size:18px}
+  .stbl .up{color:#1890ff;font-size:11px;font-weight:500}
+  .stbl tr:hover td{background:#fafbfc}
+  .legend{display:flex;gap:16px;margin-bottom:16px}
+
+  .mtbl{width:100%;border-collapse:collapse}
+  .mtbl th,.mtbl td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--bdr)}
+  .mtbl th{background:#fafafa;font-weight:500;font-size:13px;color:#666}
+  .mtbl tr:hover td{background:#fafbfc}
+
+  /* UPLOAD */
+  .uf{max-width:720px;margin:0 auto}
+  .uz{border:2px dashed #d9d9d9;border-radius:var(--r);padding:40px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:20px}
+  .uz:hover{border-color:var(--oxford);background:rgba(0,33,71,.02)}
+  .uz .ui{font-size:48px;margin-bottom:12px;filter:grayscale(0)}
+  .uz .ut{font-size:15px;margin-bottom:4px;font-weight:500}
+  .uz .uh{font-size:13px;color:var(--txt2)}
+
+  .pagi{display:flex;justify-content:center;gap:4px;margin-top:24px;align-items:center}
+  .pagi button{padding:6px 12px;border:1px solid #d9d9d9;background:#fff;border-radius:4px;cursor:pointer;font-size:13px;transition:.15s}
+  .pagi button:hover{border-color:var(--oxford);color:var(--oxford)}
+  .pagi button.on{background:var(--oxford);color:#fff;border-color:var(--oxford)}
+  .pagi span{font-size:13px;color:var(--txt2);margin:0 8px}
+
+  /* TOAST */
+  .toast{position:fixed;top:52px;left:50%;transform:translateX(-50%);background:var(--oxford);color:#fff;padding:10px 24px;border-radius:var(--r);font-size:14px;z-index:99999;opacity:0;transition:.3s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media(max-width:900px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .side{display:none}
+    .pgrid{grid-template-columns:1fr}
+    .demo-nav{display:none}
+    .dh{flex-direction:column}
+  }
+  @media(max-width:480px){
+    .stats{grid-template-columns:1fr}
+    .si{width:100%}
+    .sbar{flex-direction:column;align-items:stretch}
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-banner">
+  <span class="demo-dot"></span>
+  <b>组会文献讨论平台</b> — 交互式 UI 预览
+  <nav class="demo-nav">
+    <button class="active" data-p="login">登录</button>
+    <button data-p="dashboard">仪表盘</button>
+    <button data-p="papers">文献列表</button>
+    <button data-p="detail">文献详情</button>
+    <button data-p="upload">上传</button>
+    <button data-p="stats">统计</button>
+    <button data-p="admin">管理</button>
+  </nav>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- ===== LOGIN ===== -->
+<section id="p-login" class="page active">
+  <div class="auth-bg">
+    <div class="auth-card">
+      <h2>组会文献讨论平台</h2>
+      <span class="sub">Graduate Seminar Paper Discussion</span>
+      <div class="fg"><input class="fi" placeholder="用户名" value="zhangtx" /></div>
+      <div class="fg"><input class="fi" type="password" placeholder="密码" value="••••••••" /></div>
+      <button class="btn btn-p btn-w" style="margin-bottom:16px" onclick="go('dashboard');toast('登录成功，欢迎回来！')">登 录</button>
+      <p style="text-align:center;font-size:13px;color:var(--txt2)">
+        还没有账号？ <a href="javascript:void(0)" onclick="go('register')">立即注册</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== REGISTER ===== -->
+<section id="p-register" class="page">
+  <div class="auth-bg">
+    <div class="auth-card wide">
+      <h2>注册新账号</h2>
+      <span class="sub">加入组会文献讨论</span>
+      <div class="fg"><label>姓名 *</label><input class="fi" placeholder="真实姓名" /></div>
+      <div class="fg"><label>用户名 *</label><input class="fi" placeholder="用于登录的用户名" /></div>
+      <div class="fg"><label>邮箱 *</label><input class="fi" type="email" placeholder="邮箱地址" /></div>
+      <div class="fg"><label>密码 *</label><input class="fi" type="password" placeholder="至少6位" /></div>
+      <div class="fg"><label>确认密码 *</label><input class="fi" type="password" placeholder="再次输入密码" /></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="fg"><label>学号</label><input class="fi" placeholder="选填" /></div>
+        <div class="fg"><label>研究方向</label><input class="fi" placeholder="选填" /></div>
+      </div>
+      <button class="btn btn-p btn-w" style="margin-bottom:16px" onclick="go('login');toast('注册成功，请登录')">注 册</button>
+      <p style="text-align:center;font-size:13px;color:var(--txt2)">已有账号？ <a href="javascript:void(0)" onclick="go('login')">立即登录</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== DASHBOARD ===== -->
+<section id="p-dashboard" class="page">
+  <div class="layout">
+    <aside class="side" id="sidebar">
+      <div class="side-logo"><div class="logo-icon">S</div><span>组会文献</span></div>
+      <div class="side-menu">
+        <div class="side-item on" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>仪表盘</div>
+        <div class="side-item" onclick="go('papers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>文献列表</div>
+        <div class="side-item" onclick="go('upload')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>上传文献</div>
+        <div class="side-item" onclick="go('stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>参与统计</div>
+        <div class="side-item" onclick="go('admin')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>成员管理</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <span style="font-size:16px;color:#999">首页</span>
+        <div class="uinfo" onclick="go('login');toast('已退出登录')"><div class="av">张</div><span style="font-size:14px">张同学</span> <span style="color:#ccc;font-size:12px">▾</span></div>
+      </div>
+      <div class="cont">
+        <h3 style="margin-bottom:24px;font-size:18px;font-weight:600">欢迎回来，张同学</h3>
+        <div class="stats">
+          <div class="sc"><div class="sl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--oxford)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg> 总文献数</div><div class="sv">24</div></div>
+          <div class="sc"><div class="sl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--oxford)" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> 我的评论</div><div class="sv">18</div></div>
+          <div class="sc"><div class="sl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--err)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 待评论</div><div class="sv red">3</div></div>
+          <div class="sc"><div class="sl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--oxford)" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> 组会成员</div><div class="sv">32</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span>待评论文献</span><span class="tag t-red">3</span></div>
+          <div>
+            <div class="pi br" onclick="go('detail')"><div style="flex:1;margin-right:16px"><div class="pt">Attention Is All You Need: Revisiting Transformer Architectures</div><div class="pa">Vaswani A., Shazeer N., Parmar N., et al.</div><div class="pm"><span>上传者: 李教授</span><span>2026-03-18</span></div></div><span class="tag t-red">待完成 Pending</span></div>
+            <div class="pi br"><div style="flex:1;margin-right:16px"><div class="pt">A Survey on Large Language Models: From Concept to Implementation</div><div class="pa">Wang X., Liu Y., Zhang H.</div><div class="pm"><span>上传者: 刘同学</span><span>2026-03-15</span></div></div><span class="tag t-red">待完成 Pending</span></div>
+            <div class="pi br"><div style="flex:1;margin-right:16px"><div class="pt">Diffusion Models for Image Generation: A Comprehensive Review</div><div class="pa">Chen L., Wu J., Zhao M.</div><div class="pm"><span>上传者: 王同学</span><span>2026-03-12</span></div></div><span class="tag t-red">待完成 Pending</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PAPER LIST ===== -->
+<section id="p-papers" class="page">
+  <div class="layout">
+    <aside class="side">
+      <div class="side-logo"><div class="logo-icon">S</div><span>组会文献</span></div>
+      <div class="side-menu">
+        <div class="side-item" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>仪表盘</div>
+        <div class="side-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>文献列表</div>
+        <div class="side-item" onclick="go('upload')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>上传文献</div>
+        <div class="side-item" onclick="go('stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>参与统计</div>
+        <div class="side-item" onclick="go('admin')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>成员管理</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span style="font-size:16px;color:#999">文献列表</span><div class="uinfo"><div class="av">张</div><span style="font-size:14px">张同学</span></div></div>
+      <div class="cont">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <h3 style="font-size:18px;font-weight:600">文献列表</h3>
+          <button class="btn btn-p" onclick="go('upload')">+ 上传文献</button>
+        </div>
+        <div class="card" style="margin-bottom:12px"><div class="sbar"><input class="si" placeholder="搜索标题、作者、摘要..." /><select class="sel"><option>上传时间</option><option>标题</option></select><select class="sel"><option>降序</option><option>升序</option></select></div></div>
+        <div class="card" style="padding:0">
+          <div class="pi bl" onclick="go('detail')"><div style="flex:1;margin-right:16px"><div class="pt">Graph Neural Networks for Molecular Property Prediction</div><div class="pa">Zhang T., Li K., Chen W.</div><div class="pab">This paper presents a novel approach to molecular property prediction using graph neural networks with attention mechanisms, demonstrating state-of-the-art results on multiple benchmarks...</div><div class="pm"><span>上传者: 张同学</span><span>2026-03-20</span><span>15 评论 · 28 人参与</span></div></div><span class="tag t-blue">我上传的</span></div>
+          <div class="pi br" onclick="go('detail')"><div style="flex:1;margin-right:16px"><div class="pt">Attention Is All You Need: Revisiting Transformer Architectures for Efficient NLP</div><div class="pa">Vaswani A., Shazeer N., Parmar N., et al.</div><div class="pab">We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely...</div><div class="pm"><span>上传者: 李教授</span><span>2026-03-18</span><span>22 评论 · 25 人参与</span></div></div><span class="tag t-red">待完成 Pending</span></div>
+          <div class="pi bg"><div style="flex:1;margin-right:16px"><div class="pt">Deep Reinforcement Learning for Autonomous Navigation in Complex Environments</div><div class="pa">Kim S., Park J., Lee H., Choi Y.</div><div class="pab">This work introduces a deep reinforcement learning framework for autonomous navigation combining curriculum learning with hierarchical policy architectures...</div><div class="pm"><span>上传者: 赵同学</span><span>2026-03-14</span><span>30 评论 · 31 人参与</span></div></div><span class="tag t-grn">已参与 Engaged</span></div>
+          <div class="pi bg"><div style="flex:1;margin-right:16px"><div class="pt">Federated Learning with Differential Privacy: Balancing Utility and Security</div><div class="pa">Anderson M., Brown R., Davis L.</div><div class="pab">We study the trade-off between model utility and privacy guarantees in federated learning with an adaptive noise mechanism that scales with gradient sensitivity...</div><div class="pm"><span>上传者: 孙同学</span><span>2026-03-10</span><span>28 评论 · 30 人参与</span></div></div><span class="tag t-grn">已参与 Engaged</span></div>
+          <div class="pi br"><div style="flex:1;margin-right:16px"><div class="pt">A Survey on Large Language Models: From Concept to Implementation</div><div class="pa">Wang X., Liu Y., Zhang H.</div><div class="pab">This survey provides a comprehensive overview of LLMs, covering architectural innovations, training methodologies, alignment techniques, and practical deployment...</div><div class="pm"><span>上传者: 刘同学</span><span>2026-03-06</span><span>18 评论 · 20 人参与</span></div></div><span class="tag t-red">待完成 Pending</span></div>
+        </div>
+        <div class="pagi"><button class="on">1</button><button>2</button><button>3</button><span>共 24 篇文献</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PAPER DETAIL ===== -->
+<section id="p-detail" class="page">
+  <div class="layout">
+    <aside class="side">
+      <div class="side-logo"><div class="logo-icon">S</div><span>组会文献</span></div>
+      <div class="side-menu">
+        <div class="side-item" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>仪表盘</div>
+        <div class="side-item on" onclick="go('papers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>文献列表</div>
+        <div class="side-item" onclick="go('upload')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>上传文献</div>
+        <div class="side-item" onclick="go('stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>参与统计</div>
+        <div class="side-item" onclick="go('admin')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>成员管理</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <span style="cursor:pointer;color:var(--oxford);font-size:14px" onclick="go('papers')">← 返回列表</span>
+        <div class="uinfo"><div class="av">张</div><span style="font-size:14px">张同学</span></div>
+      </div>
+      <div class="cont" style="max-width:960px;margin:0 auto">
+        <div class="card">
+          <div class="dh">
+            <div style="flex:1">
+              <div class="dt">Attention Is All You Need: Revisiting Transformer Architectures for Efficient NLP</div>
+              <div class="da">Vaswani A., Shazeer N., Parmar N., Jones U., Gomez A.N., Kaiser L., Polosukhin I.</div>
+              <div class="dab">We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train. Our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task, improving over the existing best results by over 2 BLEU.</div>
+              <div class="dm"><span>上传者: 李教授</span><span>上传日期: 2026-03-18</span><span>演讲日期: 2026-03-22</span></div>
+            </div>
+            <button class="btn-dl" onclick="toast('PDF 下载已开始')">⬇ 下载 PDF</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h">评论参与情况 (25/31)</div>
+          <div class="card-b">
+            <div class="pgrid">
+              <div class="pcol"><h4 class="ok">✅ 已参与 (25)</h4><div class="mtags"><span class="tag t-grn">赵同学</span><span class="tag t-grn">孙同学</span><span class="tag t-grn">周同学</span><span class="tag t-grn">吴同学</span><span class="tag t-grn">郑同学</span><span class="tag t-grn">钱同学</span><span class="tag t-grn">冯同学</span><span class="tag t-grn">陈同学</span><span class="tag t-grn">杨同学</span><span class="tag t-grn">黄同学</span><span class="tag t-grn">林同学</span><span class="tag t-grn">何同学</span><span style="font-size:12px;color:var(--txt2)">... 等 25 人</span></div></div>
+              <div class="pcol"><h4 class="no">❌ 待完成 (6)</h4><div class="mtags"><span class="tag t-red">张同学</span><span class="tag t-red">刘同学</span><span class="tag t-red">马同学</span><span class="tag t-red">高同学</span><span class="tag t-red">朱同学</span><span class="tag t-red">胡同学</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h">讨论区 (8 条评论)</div>
+          <div class="card-b">
+            <div class="ci"><div class="av" style="background:#1890ff">赵</div><div class="cb"><div class="ch"><span class="n">赵同学</span><span class="m">@zhaotx · 2026-03-19 14:30</span></div><div class="cc">这篇论文提出的多头注意力机制确实很有启发性。特别是在 Section 3.2 中关于 scaled dot-product attention 的数学推导非常清晰。不过我有一个疑问：在实际应用中，attention head 的数量如何选择？文中只给出了 h=8 的实验结果。</div><div class="ca"><button class="liked" onclick="toggleLike(this)">👍 12</button><button>💬 回复</button></div>
+              <div class="rt"><div class="ci" style="margin-bottom:8px"><div class="av" style="background:#52c41a;width:28px;height:28px;font-size:12px">孙</div><div class="cb"><div class="ch"><span class="n">孙同学</span><span class="m">@sunwj · 2026-03-19 15:12</span></div><div class="cc">关于 attention head 数量的选择，后续的 BERT 论文做了更详细的 ablation。一般经验是 head 数量取 d_model / d_k，保持每个 head 维度在 64 左右。</div><div class="ca"><button onclick="toggleLike(this)">👍 5</button><button>💬 回复</button></div></div></div></div>
+            </div></div>
+            <div class="ci"><div class="av" style="background:#722ed1">周</div><div class="cb"><div class="ch"><span class="n">周同学</span><span class="m">@zhouml · 2026-03-19 16:45</span></div><div class="cc">从工程实现角度来看，Transformer 的并行化优势非常突出。但是 O(n²) 的空间复杂度在处理长序列时是个瓶颈，后续的 Longformer 和 Reformer 尝试解决这个问题。建议下周可以延伸阅读。</div><div class="ca"><button onclick="toggleLike(this)">👍 8</button><button>💬 回复</button></div></div></div>
+            <div class="ci"><div class="av" style="background:#eb2f96">钱</div><div class="cb"><div class="ch"><span class="n">钱同学</span><span class="m">@qianx · 2026-03-20 09:18</span></div><div class="cc">Positional encoding 的设计很巧妙，用正弦和余弦函数来编码位置信息。不过最近的 RoPE（Rotary Position Embedding）似乎效果更好，也更容易扩展到更长的序列。</div><div class="ca"><button class="liked" onclick="toggleLike(this)">👍 6</button><button>💬 回复</button></div></div></div>
+            <hr style="border:none;border-top:1px solid var(--bdr);margin:20px 0">
+            <div class="ce"><div class="av">张</div><div style="flex:1"><textarea class="ta" placeholder="发表你对这篇文献的看法..." id="comment-input"></textarea><div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn btn-p" onclick="postComment()">发表评论</button></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== UPLOAD ===== -->
+<section id="p-upload" class="page">
+  <div class="layout">
+    <aside class="side">
+      <div class="side-logo"><div class="logo-icon">S</div><span>组会文献</span></div>
+      <div class="side-menu">
+        <div class="side-item" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>仪表盘</div>
+        <div class="side-item" onclick="go('papers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>文献列表</div>
+        <div class="side-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>上传文献</div>
+        <div class="side-item" onclick="go('stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>参与统计</div>
+        <div class="side-item" onclick="go('admin')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>成员管理</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span style="font-size:16px;color:#999">上传文献</span><div class="uinfo"><div class="av">张</div><span style="font-size:14px">张同学</span></div></div>
+      <div class="cont">
+        <div class="uf">
+          <h3 style="margin-bottom:24px;font-size:18px;font-weight:600">上传文献</h3>
+          <div class="card"><div class="card-b">
+            <div class="fg"><label>论文标题 *</label><input class="fi" placeholder="请输入论文标题" /></div>
+            <div class="fg"><label>作者 *</label><input class="fi" placeholder="多个作者用逗号分隔" /></div>
+            <div class="fg"><label>摘要</label><textarea class="ta" style="min-height:100px" placeholder="请输入论文摘要（选填）"></textarea></div>
+            <div class="fg"><label>演讲日期</label><input class="fi" type="date" /></div>
+            <div class="fg"><label>PDF 文件 *</label><div class="uz" id="dropzone"><div class="ui">📄</div><div class="ut">点击或拖拽 PDF 文件到此区域</div><div class="uh">仅支持 PDF 格式，最大 50MB</div></div></div>
+            <button class="btn btn-p btn-w" onclick="toast('文献上传成功！');setTimeout(()=>go('papers'),800)">上传文献</button>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== STATS ===== -->
+<section id="p-stats" class="page">
+  <div class="layout">
+    <aside class="side">
+      <div class="side-logo"><div class="logo-icon">S</div><span>组会文献</span></div>
+      <div class="side-menu">
+        <div class="side-item" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>仪表盘</div>
+        <div class="side-item" onclick="go('papers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>文献列表</div>
+        <div class="side-item" onclick="go('upload')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>上传文献</div>
+        <div class="side-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>参与统计</div>
+        <div class="side-item" onclick="go('admin')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>成员管理</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span style="font-size:16px;color:#999">参与统计</span><div class="uinfo"><div class="av">张</div><span style="font-size:14px">张同学</span></div></div>
+      <div class="cont">
+        <h3 style="margin-bottom:24px;font-size:18px;font-weight:600">参与统计</h3>
+        <div class="card"><div class="card-b">
+          <div class="legend"><span class="tag t-grn">✓ 已评论</span><span class="tag t-red">✗ 未评论</span><span class="tag t-blue">上传者（免评）</span></div>
+          <div style="overflow-x:auto"><table class="stbl"><thead><tr><th>姓名</th><th>Attention Is All...</th><th>Graph Neural...</th><th>Deep RL Nav...</th><th>Federated Learn...</th><th>LLM Survey...</th><th>Diffusion Mod...</th></tr></thead><tbody>
+            <tr><td>张同学</td><td class="cx">✗</td><td class="up">上传者</td><td class="ck">✓</td><td class="ck">✓</td><td class="cx">✗</td><td class="cx">✗</td></tr>
+            <tr><td>赵同学</td><td class="ck">✓</td><td class="ck">✓</td><td class="up">上传者</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td></tr>
+            <tr><td>孙同学</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td><td class="up">上传者</td><td class="ck">✓</td><td class="ck">✓</td></tr>
+            <tr><td>李教授</td><td class="up">上传者</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td></tr>
+            <tr><td>刘同学</td><td class="cx">✗</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td><td class="up">上传者</td><td class="cx">✗</td></tr>
+            <tr><td>周同学</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td></tr>
+            <tr><td>吴同学</td><td class="ck">✓</td><td class="cx">✗</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td></tr>
+            <tr><td>马同学</td><td class="cx">✗</td><td class="cx">✗</td><td class="ck">✓</td><td class="cx">✗</td><td class="cx">✗</td><td class="cx">✗</td></tr>
+            <tr><td>高同学</td><td class="cx">✗</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td><td class="cx">✗</td><td class="ck">✓</td></tr>
+            <tr><td>王同学</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td><td class="ck">✓</td><td class="up">上传者</td></tr>
+          </tbody></table></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ADMIN ===== -->
+<section id="p-admin" class="page">
+  <div class="layout">
+    <aside class="side">
+      <div class="side-logo"><div class="logo-icon">S</div><span>组会文献</span></div>
+      <div class="side-menu">
+        <div class="side-item" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>仪表盘</div>
+        <div class="side-item" onclick="go('papers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>文献列表</div>
+        <div class="side-item" onclick="go('upload')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>上传文献</div>
+        <div class="side-item" onclick="go('stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>参与统计</div>
+        <div class="side-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>成员管理</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span style="font-size:16px;color:#999">成员管理</span><div class="uinfo"><div class="av" style="background:#722ed1">李</div><span style="font-size:14px">李教授 <span class="tag t-blue" style="font-size:10px;padding:1px 6px">管理员</span></span></div></div>
+      <div class="cont">
+        <h3 style="margin-bottom:24px;font-size:18px;font-weight:600">成员管理</h3>
+        <div class="card"><div style="overflow-x:auto"><table class="mtbl"><thead><tr><th>姓名</th><th>用户名</th><th>学号</th><th>邮箱</th><th>研究方向</th><th>角色</th><th>状态</th><th>操作</th></tr></thead><tbody>
+          <tr><td><strong>李教授</strong></td><td>liprof</td><td>T001</td><td>li@univ.edu</td><td>自然语言处理</td><td><select class="sel"><option selected>管理员</option><option>成员</option></select></td><td><span class="tag t-grn">活跃</span></td><td><button class="btn-txt danger" onclick="toast('操作成功')">停用</button></td></tr>
+          <tr><td><strong>张同学</strong></td><td>zhangtx</td><td>2024001</td><td>zhang@univ.edu</td><td>图神经网络</td><td><select class="sel"><option>管理员</option><option selected>成员</option></select></td><td><span class="tag t-grn">活跃</span></td><td><button class="btn-txt danger" onclick="toast('操作成功')">停用</button></td></tr>
+          <tr><td><strong>赵同学</strong></td><td>zhaotx</td><td>2024002</td><td>zhao@univ.edu</td><td>深度强化学习</td><td><select class="sel"><option>管理员</option><option selected>成员</option></select></td><td><span class="tag t-grn">活跃</span></td><td><button class="btn-txt danger" onclick="toast('操作成功')">停用</button></td></tr>
+          <tr><td><strong>孙同学</strong></td><td>sunwj</td><td>2024003</td><td>sun@univ.edu</td><td>联邦学习</td><td><select class="sel"><option>管理员</option><option selected>成员</option></select></td><td><span class="tag t-grn">活跃</span></td><td><button class="btn-txt danger" onclick="toast('操作成功')">停用</button></td></tr>
+          <tr><td><strong>周同学</strong></td><td>zhouml</td><td>2024004</td><td>zhou@univ.edu</td><td>计算机视觉</td><td><select class="sel"><option>管理员</option><option selected>成员</option></select></td><td><span class="tag t-grn">活跃</span></td><td><button class="btn-txt danger" onclick="toast('操作成功')">停用</button></td></tr>
+          <tr style="opacity:.45"><td><strong>马同学</strong></td><td>matx</td><td>2023015</td><td>ma@univ.edu</td><td>数据挖掘</td><td><select class="sel"><option>管理员</option><option selected>成员</option></select></td><td><span class="tag t-gray">已停用</span></td><td><button class="btn-txt" style="color:var(--ok)" onclick="toast('已启用')">启用</button></td></tr>
+        </tbody></table></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function go(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('p-' + name).classList.add('active');
+  document.querySelectorAll('.demo-nav button').forEach(b => {
+    b.classList.toggle('active', b.dataset.p === name);
+  });
+  window.scrollTo(0, 0);
+}
+
+document.querySelectorAll('.demo-nav button').forEach(b => {
+  b.addEventListener('click', () => go(b.dataset.p));
+});
+
+function toggleLike(btn) {
+  if (btn.classList.contains('liked')) {
+    btn.classList.remove('liked');
+    const n = parseInt(btn.textContent.replace(/\D/g, '')) - 1;
+    btn.textContent = '👍 ' + n;
+  } else {
+    btn.classList.add('liked');
+    const n = parseInt(btn.textContent.replace(/\D/g, '')) + 1;
+    btn.textContent = '👍 ' + n;
+  }
+}
+
+function postComment() {
+  const input = document.getElementById('comment-input');
+  if (!input.value.trim()) { toast('请输入评论内容'); return; }
+  const thread = input.closest('.card-b');
+  const hr = thread.querySelector('hr');
+  const div = document.createElement('div');
+  div.className = 'ci';
+  div.style.animation = 'fadeIn .3s';
+  div.innerHTML = '<div class="av">张</div><div class="cb"><div class="ch"><span class="n">张同学</span><span class="m">@zhangtx · 刚刚</span></div><div class="cc">' + input.value.replace(/</g,'&lt;') + '</div><div class="ca"><button onclick="toggleLike(this)">👍 0</button><button>💬 回复</button></div></div>';
+  hr.parentNode.insertBefore(div, hr);
+  input.value = '';
+  toast('评论发表成功！');
+}
+
+// Drag & drop visual feedback
+const dz = document.getElementById('dropzone');
+if (dz) {
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = '#002147'; dz.style.background = 'rgba(0,33,71,.04)'; });
+  dz.addEventListener('dragleave', () => { dz.style.borderColor = '#d9d9d9'; dz.style.background = ''; });
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.style.borderColor = '#52c41a'; dz.innerHTML = '<div class="ui">✅</div><div class="ut" style="color:#52c41a">文件已选择</div><div class="uh">paper_2026_transformer.pdf (2.4 MB)</div>'; });
+  dz.addEventListener('click', () => { dz.innerHTML = '<div class="ui">✅</div><div class="ut" style="color:#52c41a">文件已选择</div><div class="uh">paper_2026_transformer.pdf (2.4 MB)</div>'; });
+}
+</script>
+</body>
+</html>

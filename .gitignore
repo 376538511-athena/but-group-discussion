@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+uploads/
+.env
+*.log
+.DS_Store
+coverage/
+.vite/

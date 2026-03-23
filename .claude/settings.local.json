@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npx --version)",
+      "WebSearch",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(open:*)",
+      "Bash(find /Users/athenazeng/Documents/Project/ai组会论文网 -type f -name package.json -o -name Dockerfile -o -name docker-compose*.yml -o -name .env* -o -name *.nginx -o -name nginx.conf)",
+      "Bash(find /Users/athenazeng/Documents/Project/ai组会论文网 -maxdepth 3 -type f \\\\\\(-name .sequelizerc -o -name github -o -name *.yml \\\\\\))",
+      "Bash(grep -r NODE_ENV /Users/athenazeng/Documents/Project/ai组会论文网/server/src --include=*.ts)",
+      "Bash(brew install:*)",
+      "Bash(pandoc 功能框架文档.md -o 功能框架文档.docx --from markdown --to docx)",
+      "Bash(pandoc 部署上线方案.md -o 部署上线方案.docx --from markdown --to docx)",
+      "Bash(ls -lh *.docx)"
+    ]
+  }
+}
