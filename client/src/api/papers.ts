@@ -10,6 +10,26 @@ import {
 } from '../lib/database';
 import { storageBucket, supabase } from '../lib/supabase';
 
+function buildSafeFileName(originalName: string): string {
+  const extensionMatch = originalName.match(/(\.[^.]+)$/);
+  const extension = extensionMatch?.[1]?.toLowerCase() || '.pdf';
+  const baseName = originalName.replace(/(\.[^.]+)$/, '');
+
+  const sanitizedBaseName = baseName
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '')
+    .toLowerCase();
+
+  const fallbackBaseName = sanitizedBaseName || 'paper';
+  const trimmedBaseName = fallbackBaseName.slice(0, 120);
+  const safeExtension = extension.replace(/[^a-z0-9.]/g, '') || '.pdf';
+
+  return `${Date.now()}-${trimmedBaseName}${safeExtension}`;
+}
+
 function buildMeta(page: number, limit: number, total: number) {
   return {
     page,
@@ -128,7 +148,7 @@ export const papersApi = {
       throw new Error('请先选择 PDF 文件');
     }
 
-    const safeName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
+    const safeName = buildSafeFileName(file.name);
     const filePath = `${currentUser.id}/${safeName}`;
     const { error: uploadError } = await supabase.storage
       .from(storageBucket)
