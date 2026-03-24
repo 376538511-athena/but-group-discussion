@@ -75,7 +75,7 @@ const AppLayout: React.FC = () => {
               whiteSpace: 'nowrap',
             }}
           >
-            {collapsed ? '组会' : '组会文献讨论'}
+            {collapsed ? 'OB' : 'OurBUT'}
           </Text>
         </div>
         <Menu

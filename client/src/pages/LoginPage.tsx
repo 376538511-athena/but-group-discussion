@@ -44,9 +44,9 @@ const LoginPage: React.FC = () => {
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <Title level={3} style={{ color: '#002147', marginBottom: 4 }}>
-            组会文献讨论平台
+            OurBUT
           </Title>
-          <Text type="secondary">Graduate Seminar Paper Discussion</Text>
+          <Text type="secondary">Seminar Paper Discussion</Text>
         </div>
 
         <Form name="login" onFinish={onFinish} size="large" autoComplete="off">

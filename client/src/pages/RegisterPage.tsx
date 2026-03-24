@@ -55,7 +55,7 @@ const RegisterPage: React.FC = () => {
           <Title level={3} style={{ color: '#002147', marginBottom: 4 }}>
             注册新账号
           </Title>
-          <Text type="secondary">加入组会文献讨论</Text>
+          <Text type="secondary">Join OurBUT</Text>
         </div>
 
         <Form form={form} name="register" onFinish={onFinish} size="large" layout="vertical" autoComplete="off">
