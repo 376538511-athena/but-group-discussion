@@ -26,6 +26,7 @@ const UploadPaperPage: React.FC = () => {
       const formData = new FormData();
       formData.append('title', values.title);
       formData.append('authors', values.authors);
+      if (values.journal_source) formData.append('journal_source', values.journal_source);
       if (values.abstract) formData.append('abstract', values.abstract);
       if (values.presentation_date) {
         formData.append('presentation_date', values.presentation_date.format('YYYY-MM-DD'));
@@ -91,6 +92,10 @@ const UploadPaperPage: React.FC = () => {
             rules={[{ required: true, message: '请输入作者' }]}
           >
             <Input placeholder="多个作者用逗号分隔" />
+          </Form.Item>
+
+          <Form.Item name="journal_source" label="期刊来源">
+            <Input placeholder="例如：Nature、Science、ICLR 2026（选填）" />
           </Form.Item>
 
           <Form.Item name="abstract" label="摘要">

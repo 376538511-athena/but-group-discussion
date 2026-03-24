@@ -6,7 +6,7 @@ import {
 import {
   DownloadOutlined, CalendarOutlined, UserOutlined, CommentOutlined,
   LikeOutlined, LikeFilled, DeleteOutlined, CheckCircleOutlined,
-  CloseCircleOutlined, SendOutlined,
+  CloseCircleOutlined, SendOutlined, BookOutlined,
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { papersApi } from '../api/papers';
@@ -14,6 +14,7 @@ import { commentsApi } from '../api/comments';
 import { useAuth } from '../context/AuthContext';
 import dayjs from 'dayjs';
 import type { Comment } from '../types/comment';
+import { getErrorMessage } from '../lib/errors';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -117,6 +118,16 @@ const PaperDetailPage: React.FC = () => {
       fetchData();
     } catch {
       message.error('删除失败');
+    }
+  };
+
+  const handleDeletePaper = async () => {
+    try {
+      await papersApi.delete(parseInt(id!));
+      message.success('文献已删除');
+      navigate('/papers');
+    } catch (error) {
+      message.error(getErrorMessage(error, '删除失败'));
     }
   };
 
@@ -231,6 +242,12 @@ const PaperDetailPage: React.FC = () => {
             <Text style={{ color: '#2e7d32', fontSize: 15, display: 'block', marginBottom: 12 }}>
               {paper.authors}
             </Text>
+            {paper.journal_source && (
+              <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
+                <BookOutlined style={{ marginRight: 6 }} />
+                期刊来源: {paper.journal_source}
+              </Text>
+            )}
             {paper.abstract && (
               <Paragraph type="secondary" style={{ fontSize: 14, marginBottom: 12 }}>
                 {paper.abstract}
@@ -252,9 +269,22 @@ const PaperDetailPage: React.FC = () => {
               )}
             </Space>
           </div>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={handleDownload} size="large">
-            下载 PDF
-          </Button>
+          <Space direction="vertical" size="middle">
+            <Button type="primary" icon={<DownloadOutlined />} onClick={handleDownload} size="large">
+              下载 PDF
+            </Button>
+            {paper.is_uploader && (
+              <Popconfirm
+                title="确定删除这篇文献吗？"
+                description="该操作会删除 PDF 文件和文献记录。"
+                onConfirm={handleDeletePaper}
+              >
+                <Button danger icon={<DeleteOutlined />}>
+                  删除文献
+                </Button>
+              </Popconfirm>
+            )}
+          </Space>
         </div>
       </Card>
 

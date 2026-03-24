@@ -1,4 +1,4 @@
-import type { LoginData, RegisterData, User } from '../types/user';
+import type { LoginData, RegisterData, SignupVerificationData, User } from '../types/user';
 import { apiSuccess } from '../lib/api';
 import { getCurrentProfile } from '../lib/database';
 import { supabase } from '../lib/supabase';
@@ -39,22 +39,30 @@ export const authApi = {
       throw new Error('注册失败，请稍后重试。');
     }
 
-    const { error: profileError } = await supabase.from('profiles').upsert({
-      id: user.id,
+    return apiSuccess({
+      userId: user.id,
       email: data.email,
-      username: data.username,
-      real_name: data.real_name,
-      student_id: data.student_id || null,
-      research_direction: data.research_direction || null,
+      requiresVerification: true,
     });
+  },
 
-    if (profileError) {
-      throw new Error(profileError.message || '用户资料初始化失败');
+  async verifySignupCode(data: Pick<SignupVerificationData, 'email' | 'verification_code'>) {
+    if (!data.verification_code) {
+      throw new Error('请输入邮箱验证码');
     }
 
-    return apiSuccess({
-      user: await requireProfile(),
+    const { error } = await supabase.auth.verifyOtp({
+      email: data.email,
+      token: data.verification_code,
+      type: 'signup',
     });
+
+    if (error) {
+      throw new Error(error.message || '验证码校验失败');
+    }
+
+    await supabase.auth.signOut();
+    return apiSuccess(null, undefined, '邮箱验证成功，请使用邮箱和密码登录');
   },
 
   async login(data: LoginData) {

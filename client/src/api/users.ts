@@ -1,6 +1,6 @@
 import { apiSuccess } from '../lib/api';
 import { getCurrentProfile, listPapersRaw, listProfiles, mapPaper } from '../lib/database';
-import { supabase } from '../lib/supabase';
+import { avatarBucket, supabase } from '../lib/supabase';
 
 export const usersApi = {
   async list() {
@@ -60,6 +60,36 @@ export const usersApi = {
 
     return apiSuccess(data);
   },
+
+  async uploadAvatar(file: File) {
+    const currentUser = await getCurrentProfile();
+    if (!currentUser) {
+      throw new Error('请先登录');
+    }
+
+    const extension = file.name.match(/(\.[^.]+)$/)?.[1]?.toLowerCase() || '.png';
+    const path = `${currentUser.id}/avatar-${Date.now()}${extension.replace(/[^a-z0-9.]/g, '')}`;
+    const { error: uploadError } = await supabase.storage.from(avatarBucket).upload(path, file, {
+      contentType: file.type || 'image/png',
+      upsert: true,
+    });
+
+    if (uploadError) {
+      throw new Error(uploadError.message || '头像上传失败');
+    }
+
+    const { data } = supabase.storage.from(avatarBucket).getPublicUrl(path);
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ avatar_url: data.publicUrl })
+      .eq('id', currentUser.id);
+
+    if (updateError) {
+      throw new Error(updateError.message || '头像资料更新失败');
+    }
+
+    return apiSuccess({ avatar_url: data.publicUrl }, undefined, '头像上传成功');
+  },
 };
 
 export const statsApi = {
@@ -110,21 +140,18 @@ export const statsApi = {
     const papers = papersData.rows.map(mapPaper);
     const comments = commentsRes.data || [];
     const activeMembers = members.filter((member) => member.is_active);
-
-    const matrix = activeMembers.map((member) => ({
-      user: member,
-      papers: papers.map((paper) => ({
-        paper_id: paper.id,
-        is_uploader: paper.uploader_id === member.id,
-        has_commented: comments.some(
-          (comment) => comment.paper_id === paper.id && comment.user_id === member.id
-        ),
-      })),
-    }));
+    const summary = activeMembers.map((member) => {
+      const uploadedCount = papers.filter((paper) => paper.uploader_id === member.id).length;
+      const commentedCount = comments.filter((comment) => comment.user_id === member.id).length;
+      return {
+        user: member,
+        uploaded_count: uploadedCount,
+        commented_count: commentedCount,
+      };
+    });
 
     return apiSuccess({
-      papers,
-      matrix,
+      summary,
     });
   },
 

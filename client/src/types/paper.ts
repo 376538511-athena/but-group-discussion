@@ -4,6 +4,7 @@ export interface Paper {
   id: number;
   title: string;
   authors: string;
+  journal_source: string | null;
   abstract: string | null;
   file_path: string;
   file_size: number | null;

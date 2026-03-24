@@ -164,6 +164,7 @@ export const papersApi = {
     const payload = {
       title: String(formData.get('title') || ''),
       authors: String(formData.get('authors') || ''),
+      journal_source: String(formData.get('journal_source') || '') || null,
       abstract: String(formData.get('abstract') || '') || null,
       presentation_date: String(formData.get('presentation_date') || '') || null,
       file_path: filePath,
@@ -176,7 +177,7 @@ export const papersApi = {
       .from('papers')
       .insert(payload)
       .select(
-        'id, title, authors, abstract, file_path, file_size, original_filename, uploader_id, presentation_date, created_at, updated_at, uploader:profiles!papers_uploader_id_fkey(id, real_name, username)'
+        'id, title, authors, journal_source, abstract, file_path, file_size, original_filename, uploader_id, presentation_date, created_at, updated_at, uploader:profiles!papers_uploader_id_fkey(id, real_name, username)'
       )
       .single();
 
@@ -188,13 +189,13 @@ export const papersApi = {
     return apiSuccess(mapPaper(data as any));
   },
 
-  async update(id: number, data: { title?: string; authors?: string; abstract?: string; presentation_date?: string }) {
+  async update(id: number, data: { title?: string; authors?: string; journal_source?: string | null; abstract?: string; presentation_date?: string }) {
     const { data: updated, error } = await supabase
       .from('papers')
       .update(data)
       .eq('id', id)
       .select(
-        'id, title, authors, abstract, file_path, file_size, original_filename, uploader_id, presentation_date, created_at, updated_at, uploader:profiles!papers_uploader_id_fkey(id, real_name, username)'
+        'id, title, authors, journal_source, abstract, file_path, file_size, original_filename, uploader_id, presentation_date, created_at, updated_at, uploader:profiles!papers_uploader_id_fkey(id, real_name, username)'
       )
       .single();
 
@@ -206,7 +207,11 @@ export const papersApi = {
   },
 
   async delete(id: number) {
+    const currentUser = await getCurrentProfile();
     const paper = mapPaper(await getPaperByIdRaw(id));
+    if (!currentUser || currentUser.id !== paper.uploader_id) {
+      throw new Error('只能删除自己上传的文献');
+    }
     const { error } = await supabase.from('papers').delete().eq('id', id);
     if (error) {
       throw new Error(error.message || '删除失败');

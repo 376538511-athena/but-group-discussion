@@ -21,6 +21,7 @@ type PaperRow = {
   id: number;
   title: string;
   authors: string;
+  journal_source: string | null;
   abstract: string | null;
   file_path: string;
   file_size: number | null;
@@ -76,6 +77,7 @@ export function mapPaper(row: PaperRow): Paper {
     id: row.id,
     title: row.title,
     authors: row.authors,
+    journal_source: row.journal_source,
     abstract: row.abstract,
     file_path: row.file_path,
     file_size: row.file_size,
@@ -171,7 +173,7 @@ export async function listPapersRaw(params?: {
   let query = supabase
     .from('papers')
     .select(
-      'id, title, authors, abstract, file_path, file_size, original_filename, uploader_id, presentation_date, created_at, updated_at, uploader:profiles!papers_uploader_id_fkey(id, real_name, username)',
+      'id, title, authors, journal_source, abstract, file_path, file_size, original_filename, uploader_id, presentation_date, created_at, updated_at, uploader:profiles!papers_uploader_id_fkey(id, real_name, username)',
       { count: 'exact' }
     )
     .order(sortField, { ascending, nullsFirst: false })
@@ -179,7 +181,7 @@ export async function listPapersRaw(params?: {
 
   if (params?.search) {
     query = query.or(
-      `title.ilike.%${params.search}%,authors.ilike.%${params.search}%,abstract.ilike.%${params.search}%`
+      `title.ilike.%${params.search}%,authors.ilike.%${params.search}%,journal_source.ilike.%${params.search}%,abstract.ilike.%${params.search}%`
     );
   }
 
@@ -196,7 +198,7 @@ export async function getPaperByIdRaw(id: number) {
   const { data, error } = await supabase
     .from('papers')
     .select(
-      'id, title, authors, abstract, file_path, file_size, original_filename, uploader_id, presentation_date, created_at, updated_at, uploader:profiles!papers_uploader_id_fkey(id, real_name, username)'
+      'id, title, authors, journal_source, abstract, file_path, file_size, original_filename, uploader_id, presentation_date, created_at, updated_at, uploader:profiles!papers_uploader_id_fkey(id, real_name, username)'
     )
     .eq('id', id)
     .single();

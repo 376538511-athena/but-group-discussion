@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Input, Select, DatePicker, Card, List, Tag, Typography, Spin, Empty, Space, Pagination, Button } from 'antd';
-import { SearchOutlined, FileTextOutlined, UploadOutlined } from '@ant-design/icons';
+import { Input, Select, Card, Tag, Typography, Spin, Empty, Space, Pagination, Button, Popconfirm, message } from 'antd';
+import { SearchOutlined, FileTextOutlined, UploadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { papersApi } from '../api/papers';
 import dayjs from 'dayjs';
+import { getErrorMessage } from '../lib/errors';
 
 const { Title, Text, Paragraph } = Typography;
-const { RangePicker } = DatePicker;
 
 const PaperListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -44,6 +44,16 @@ const PaperListPage: React.FC = () => {
   const handleSearch = (value: string) => {
     setSearch(value);
     setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const handleDeletePaper = async (paperId: number) => {
+    try {
+      await papersApi.delete(paperId);
+      message.success('文献已删除');
+      fetchPapers();
+    } catch (error) {
+      message.error(getErrorMessage(error, '删除失败'));
+    }
   };
 
   return (
@@ -137,6 +147,11 @@ const PaperListPage: React.FC = () => {
                     <Text style={{ color: '#2e7d32', fontSize: 13, display: 'block', marginBottom: 4 }}>
                       {paper.authors}
                     </Text>
+                    {paper.journal_source && (
+                      <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>
+                        期刊来源: {paper.journal_source}
+                      </Text>
+                    )}
 
                     {/* Abstract preview */}
                     {paper.abstract && (
@@ -166,7 +181,27 @@ const PaperListPage: React.FC = () => {
                   {/* Status Badge */}
                   <div>
                     {paper.is_uploader ? (
-                      <Tag color="blue">我上传的</Tag>
+                      <Space direction="vertical" size={8} align="end">
+                        <Tag color="blue">我上传的</Tag>
+                        <Popconfirm
+                          title="确定删除这篇文献吗？"
+                          description="会同时删除数据库记录和 PDF 文件。"
+                          onConfirm={(event) => {
+                            event?.stopPropagation();
+                            handleDeletePaper(paper.id);
+                          }}
+                          onCancel={(event) => event?.stopPropagation()}
+                        >
+                          <Button
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            删除
+                          </Button>
+                        </Popconfirm>
+                      </Space>
                     ) : paper.user_has_commented ? (
                       <Tag color="success">已参与 Engaged</Tag>
                     ) : (

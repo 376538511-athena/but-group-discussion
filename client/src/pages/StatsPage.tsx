@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Tag, Typography, Spin, Tooltip } from 'antd';
-import { BarChartOutlined, CheckCircleOutlined, CloseCircleOutlined, MinusOutlined } from '@ant-design/icons';
+import { Card, Table, Typography, Spin, Avatar, Space } from 'antd';
+import { BarChartOutlined, FileTextOutlined, CommentOutlined, UserOutlined } from '@ant-design/icons';
 import { statsApi } from '../api/users';
 
 const { Title, Text } = Typography;
@@ -34,34 +34,44 @@ const StatsPage: React.FC = () => {
       title: '姓名',
       dataIndex: ['user', 'real_name'],
       key: 'name',
-      fixed: 'left' as const,
-      width: 120,
-      render: (text: string) => <Text strong>{text}</Text>,
-    },
-    ...data.papers.map((paper: any) => ({
-      title: (
-        <Tooltip title={paper.title}>
-          <Text ellipsis style={{ maxWidth: 80, display: 'block', fontSize: 12 }}>
-            {paper.title}
-          </Text>
-        </Tooltip>
+      render: (_: string, record: any) => (
+        <Space>
+          <Avatar size={36} src={record.user.avatar_url} icon={<UserOutlined />} />
+          <div>
+            <Text strong>{record.user.real_name}</Text>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                @{record.user.username}
+              </Text>
+            </div>
+          </div>
+        </Space>
       ),
-      key: `paper-${paper.id}`,
-      width: 100,
+    },
+    {
+      title: '上传文献数',
+      dataIndex: 'uploaded_count',
+      key: 'uploaded_count',
       align: 'center' as const,
-      render: (_: any, record: any) => {
-        const paperData = record.papers.find((p: any) => p.paper_id === paper.id);
-        if (!paperData) return <MinusOutlined style={{ color: '#d9d9d9' }} />;
-        if (paperData.is_uploader) {
-          return <Tag color="blue" style={{ fontSize: 11 }}>上传者</Tag>;
-        }
-        return paperData.has_commented ? (
-          <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 16 }} />
-        ) : (
-          <CloseCircleOutlined style={{ color: '#f5222d', fontSize: 16 }} />
-        );
-      },
-    })),
+      render: (value: number) => (
+        <Space>
+          <FileTextOutlined style={{ color: '#002147' }} />
+          <Text strong>{value}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: '评论文献数',
+      dataIndex: 'commented_count',
+      key: 'commented_count',
+      align: 'center' as const,
+      render: (value: number) => (
+        <Space>
+          <CommentOutlined style={{ color: '#2e7d32' }} />
+          <Text strong>{value}</Text>
+        </Space>
+      ),
+    },
   ];
 
   return (
@@ -72,20 +82,17 @@ const StatsPage: React.FC = () => {
       </Title>
 
       <Card>
-        <div style={{ marginBottom: 16 }}>
-          <Tag color="success"><CheckCircleOutlined /> 已评论</Tag>
-          <Tag color="error"><CloseCircleOutlined /> 未评论</Tag>
-          <Tag color="blue">上传者（免评）</Tag>
-        </div>
+        <Text type="secondary" style={{ display: 'block', marginBottom: 20 }}>
+          这是新的简化版参与统计 demo。后续文献再多，页面也只保留每位成员的核心贡献数据，不再按每篇文章展开矩阵。
+        </Text>
 
         <Table
-          dataSource={data.matrix}
+          dataSource={data.summary}
           columns={columns}
           rowKey={(record: any) => record.user.id}
-          scroll={{ x: 'max-content' }}
           pagination={false}
           bordered
-          size="small"
+          size="middle"
         />
       </Card>
     </div>
