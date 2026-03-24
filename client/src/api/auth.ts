@@ -1,4 +1,4 @@
-import type { LoginData, RegisterData, SignupVerificationData, User } from '../types/user';
+import type { LoginData, RegisterData, User } from '../types/user';
 import { apiSuccess } from '../lib/api';
 import { getCurrentProfile } from '../lib/database';
 import { supabase } from '../lib/supabase';
@@ -44,25 +44,6 @@ export const authApi = {
       email: data.email,
       requiresVerification: true,
     });
-  },
-
-  async verifySignupCode(data: Pick<SignupVerificationData, 'email' | 'verification_code'>) {
-    if (!data.verification_code) {
-      throw new Error('请输入邮箱验证码');
-    }
-
-    const { error } = await supabase.auth.verifyOtp({
-      email: data.email,
-      token: data.verification_code,
-      type: 'signup',
-    });
-
-    if (error) {
-      throw new Error(error.message || '验证码校验失败');
-    }
-
-    await supabase.auth.signOut();
-    return apiSuccess(null, undefined, '邮箱验证成功，请使用邮箱和密码登录');
   },
 
   async login(data: LoginData) {

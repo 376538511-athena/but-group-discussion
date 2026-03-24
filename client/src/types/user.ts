@@ -25,7 +25,3 @@ export interface RegisterData {
   student_id?: string;
   research_direction?: string;
 }
-
-export interface SignupVerificationData extends RegisterData {
-  verification_code?: string;
-}

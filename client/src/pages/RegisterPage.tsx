@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message, Space, Alert } from 'antd';
+import { Form, Input, Button, Card, Typography, message, Alert } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, IdcardOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../api/auth';
@@ -9,8 +9,7 @@ const { Title, Text } = Typography;
 
 const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [verifyLoading, setVerifyLoading] = useState(false);
-  const [verificationRequested, setVerificationRequested] = useState(false);
+  const [mailSent, setMailSent] = useState(false);
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
@@ -25,29 +24,12 @@ const RegisterPage: React.FC = () => {
         student_id: values.student_id,
         research_direction: values.research_direction,
       });
-      setVerificationRequested(true);
-      message.success('验证码已发送，请查收邮箱并完成验证');
+      setMailSent(true);
+      message.success('验证邮件已发送，请前往邮箱点击确认链接完成注册');
     } catch (error) {
       message.error(getErrorMessage(error, '注册失败'));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleVerifyCode = async () => {
-    const values = await form.validateFields(['email', 'verification_code']);
-    setVerifyLoading(true);
-    try {
-      await authApi.verifySignupCode({
-        email: values.email,
-        verification_code: values.verification_code,
-      });
-      message.success('邮箱验证成功，请登录');
-      navigate('/login');
-    } catch (error) {
-      message.error(getErrorMessage(error, '验证码校验失败'));
-    } finally {
-      setVerifyLoading(false);
     }
   };
 
@@ -107,26 +89,14 @@ const RegisterPage: React.FC = () => {
             <Input prefix={<MailOutlined />} placeholder="邮箱地址" />
           </Form.Item>
 
-          {verificationRequested && (
-            <>
-              <Alert
-                type="info"
-                showIcon
-                style={{ marginBottom: 16 }}
-                message="验证码已发送"
-                description="请去邮箱查看 6 位验证码，填写后再完成注册。若没收到，可重新点击下方“发送注册验证码”。"
-              />
-              <Form.Item
-                name="verification_code"
-                label="邮箱验证码"
-                rules={[
-                  { required: true, message: '请输入邮箱验证码' },
-                  { len: 6, message: '验证码通常为 6 位' },
-                ]}
-              >
-                <Input placeholder="输入邮箱收到的验证码" maxLength={6} />
-              </Form.Item>
-            </>
+          {mailSent && (
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message="验证邮件已发送"
+              description="请前往邮箱点击确认链接完成注册。完成后返回登录页，用邮箱和密码登录即可。"
+            />
           )}
 
           <Form.Item
@@ -168,21 +138,14 @@ const RegisterPage: React.FC = () => {
           </Form.Item>
 
           <Form.Item>
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <Button type="primary" htmlType="submit" block loading={loading}>
-                {verificationRequested ? '重新发送注册验证码' : '发送注册验证码'}
-              </Button>
-              {verificationRequested && (
-                <Button block loading={verifyLoading} onClick={handleVerifyCode}>
-                  验证验证码并完成注册
-                </Button>
-              )}
-            </Space>
+            <Button type="primary" htmlType="submit" block loading={loading}>
+              {mailSent ? '重新发送验证邮件' : '注册并发送验证邮件'}
+            </Button>
           </Form.Item>
 
           <div style={{ textAlign: 'center' }}>
             <Text type="secondary">
-              已有账号？ <Link to="/login">立即登录</Link>
+              已完成邮箱确认？ <Link to="/login">立即登录</Link>
             </Text>
           </div>
         </Form>

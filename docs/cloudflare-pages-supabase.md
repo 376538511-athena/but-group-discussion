@@ -34,14 +34,14 @@ alter table public.profiles add column if not exists avatar_url text;
 - 上传：`authenticated` + `INSERT` + `bucket_id = 'avatars'`
 - 读取：`authenticated` + `SELECT` + `bucket_id = 'avatars'`
 
-## 邮箱验证码注册
+## 邮箱确认注册
 
 当前前端已经改成：
 
 1. 先填写注册资料
-2. 点击“发送注册验证码”
-3. 去邮箱查看验证码
-4. 输入验证码后完成注册
+2. 点击“注册并发送验证邮件”
+3. 去邮箱点击确认链接
+4. 返回登录页，用邮箱和密码登录
 
 你在 Supabase 里需要同步打开：
 
@@ -59,8 +59,7 @@ alter table public.profiles add column if not exists avatar_url text;
 
 说明：
 - 当前实现基于 Supabase 的邮箱确认能力
-- 前端会要求用户输入邮箱验证码后再完成注册
-- 如果你想让邮件模板更明确显示验证码，建议在 Supabase Email 模板里确认 OTP token 变量已启用
+- 前端不再要求手动输入验证码，而是直接提示用户去邮箱点击确认链接
 
 ## 前端环境变量
 
@@ -83,7 +82,7 @@ alter table public.profiles add column if not exists avatar_url text;
 ## 注意事项
 
 - 当前登录方式已经切换为“邮箱 + 密码”。
-- 注册流程已扩展为邮箱验证码确认。
+- 注册流程已改为邮箱确认链接。
 - 文件上传不再使用本地 `uploads` 目录，而是写入 Supabase Storage。
 - 头像上传建议使用单独的 `avatars` bucket，并限制 2MB 内。
 - 文献删除按钮只对自己上传的文献显示。
