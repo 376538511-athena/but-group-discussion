@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message, Alert } from 'antd';
+import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, IdcardOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../api/auth';
@@ -9,7 +9,6 @@ const { Title, Text } = Typography;
 
 const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [mailSent, setMailSent] = useState(false);
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
@@ -24,8 +23,9 @@ const RegisterPage: React.FC = () => {
         student_id: values.student_id,
         research_direction: values.research_direction,
       });
-      setMailSent(true);
-      message.success('验证邮件已发送，请前往邮箱点击确认链接完成注册');
+      message.success('注册成功，请直接使用邮箱和密码登录');
+      form.resetFields();
+      navigate('/login');
     } catch (error) {
       message.error(getErrorMessage(error, '注册失败'));
     } finally {
@@ -89,16 +89,6 @@ const RegisterPage: React.FC = () => {
             <Input prefix={<MailOutlined />} placeholder="邮箱地址" />
           </Form.Item>
 
-          {mailSent && (
-            <Alert
-              type="info"
-              showIcon
-              style={{ marginBottom: 16 }}
-              message="验证邮件已发送"
-              description="请前往邮箱点击确认链接完成注册。完成后返回登录页，用邮箱和密码登录即可。"
-            />
-          )}
-
           <Form.Item
             name="password"
             label="密码"
@@ -139,13 +129,13 @@ const RegisterPage: React.FC = () => {
 
           <Form.Item>
             <Button type="primary" htmlType="submit" block loading={loading}>
-              {mailSent ? '重新发送验证邮件' : '注册并发送验证邮件'}
+              注册
             </Button>
           </Form.Item>
 
           <div style={{ textAlign: 'center' }}>
             <Text type="secondary">
-              已完成邮箱确认？ <Link to="/login">立即登录</Link>
+              已有账号？ <Link to="/login">立即登录</Link>
             </Text>
           </div>
         </Form>

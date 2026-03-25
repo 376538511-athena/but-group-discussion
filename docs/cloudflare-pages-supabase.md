@@ -34,32 +34,28 @@ alter table public.profiles add column if not exists avatar_url text;
 - 上传：`authenticated` + `INSERT` + `bucket_id = 'avatars'`
 - 读取：`authenticated` + `SELECT` + `bucket_id = 'avatars'`
 
-## 邮箱确认注册
+## 关闭邮箱确认注册
 
 当前前端已经改成：
 
 1. 先填写注册资料
-2. 点击“注册并发送验证邮件”
-3. 去邮箱点击确认链接
-4. 返回登录页，用邮箱和密码登录
+2. 点击“注册”
+3. 注册成功后直接返回登录页
+4. 用邮箱和密码登录
 
-你在 Supabase 里需要同步打开：
+你在 Supabase 里需要同步关闭：
 
 1. `Authentication > Sign In / Providers > Email`
-2. 打开 `Confirm email`
+2. 关闭 `Confirm email`
 
 另外建议检查：
 
 1. `Authentication > URL Configuration`
 - `Site URL` 填你的 Cloudflare Pages 地址，后续换成正式域名后再改成正式域名
 
-2. `Authentication > Email`
-- 测试阶段可先用默认邮件能力
-- 正式使用建议换成你自己的 SMTP
-
 说明：
-- 当前实现基于 Supabase 的邮箱确认能力
-- 前端不再要求手动输入验证码，而是直接提示用户去邮箱点击确认链接
+- 当前实现不再依赖 Supabase 的邮箱确认能力
+- 不需要配置 SMTP 也可以完成基础注册登录
 
 ## 前端环境变量
 
@@ -82,7 +78,7 @@ alter table public.profiles add column if not exists avatar_url text;
 ## 注意事项
 
 - 当前登录方式已经切换为“邮箱 + 密码”。
-- 注册流程已改为邮箱确认链接。
+- 注册流程已改为直接注册成功后登录。
 - 文件上传不再使用本地 `uploads` 目录，而是写入 Supabase Storage。
 - 头像上传建议使用单独的 `avatars` bucket，并限制 2MB 内。
 - 文献删除按钮只对自己上传的文献显示。

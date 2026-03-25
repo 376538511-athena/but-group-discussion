@@ -42,7 +42,7 @@ export const authApi = {
     return apiSuccess({
       userId: user.id,
       email: data.email,
-      requiresVerification: true,
+      requiresVerification: false,
     });
   },
 
