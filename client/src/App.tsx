@@ -15,6 +15,8 @@ import UploadPaperPage from './pages/UploadPaperPage';
 import StatsPage from './pages/StatsPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminMembersPage from './pages/AdminMembersPage';
+import MembersPage from './pages/MembersPage';
+import MemberProfilePage from './pages/MemberProfilePage';
 
 const App: React.FC = () => {
   return (
@@ -38,6 +40,8 @@ const App: React.FC = () => {
               <Route path="papers/upload" element={<UploadPaperPage />} />
               <Route path="papers/:id" element={<PaperDetailPage />} />
               <Route path="stats" element={<StatsPage />} />
+              <Route path="members" element={<MembersPage />} />
+              <Route path="members/:id" element={<MemberProfilePage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route
                 path="admin/members"

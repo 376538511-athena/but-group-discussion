@@ -9,6 +9,7 @@ type ProfileRow = {
   email: string;
   real_name: string;
   student_id: string | null;
+  college: string | null;
   research_direction: string | null;
   avatar_url: string | null;
   role: 'admin' | 'member';
@@ -39,6 +40,7 @@ type CommentRow = {
   user_id: string;
   parent_id: number | null;
   content: string;
+  is_featured: boolean;
   created_at: string;
   updated_at: string;
   user: Pick<ProfileRow, 'id' | 'real_name' | 'username' | 'avatar_url'> | Pick<ProfileRow, 'id' | 'real_name' | 'username' | 'avatar_url'>[] | null;
@@ -62,6 +64,7 @@ export function mapProfile(row: ProfileRow): User {
     email: row.email,
     real_name: row.real_name,
     student_id: row.student_id,
+    college: row.college,
     research_direction: row.research_direction,
     avatar_url: row.avatar_url,
     role: row.role,
@@ -211,7 +214,7 @@ export async function listPaperCommentsRaw(paperId: number) {
   const { data, error } = await supabase
     .from('comments')
     .select(
-      'id, paper_id, user_id, parent_id, content, created_at, updated_at, user:profiles!comments_user_id_fkey(id, real_name, username, avatar_url)'
+      'id, paper_id, user_id, parent_id, content, is_featured, created_at, updated_at, user:profiles!comments_user_id_fkey(id, real_name, username, avatar_url)'
     )
     .eq('paper_id', paperId)
     .order('created_at', { ascending: true });
@@ -256,6 +259,7 @@ export async function buildCommentsForPaper(paperId: number, currentUserId?: str
       user_id: row.user_id,
       parent_id: row.parent_id,
       content: row.content,
+      is_featured: row.is_featured ?? false,
       user: user || {
         id: row.user_id,
         real_name: '未知用户',

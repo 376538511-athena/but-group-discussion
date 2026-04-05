@@ -1,23 +1,35 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Card, Typography, Button, Tag, Divider, Space, Spin, Avatar, Row, Col,
-  Input, message, List, Tooltip, Empty, Popconfirm,
+  Input, message, Tooltip, Empty, Popconfirm,
 } from 'antd';
 import {
   DownloadOutlined, CalendarOutlined, UserOutlined, CommentOutlined,
   LikeOutlined, LikeFilled, DeleteOutlined, CheckCircleOutlined,
-  CloseCircleOutlined, SendOutlined, BookOutlined,
+  CloseCircleOutlined, SendOutlined, BookOutlined, StarOutlined, StarFilled,
+  SaveOutlined,
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { papersApi } from '../api/papers';
 import { commentsApi } from '../api/comments';
 import { useAuth } from '../context/AuthContext';
+import { bookmarksApi } from '../api/bookmarks';
+import { weeklyTasksApi } from '../api/weeklyTasks';
 import dayjs from 'dayjs';
 import type { Comment } from '../types/comment';
 import { getErrorMessage } from '../lib/errors';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
+
+// score = like_count + replies.length  (for root comments)
+function commentScore(c: Comment): number {
+  return c.like_count + (c.replies?.length ?? 0);
+}
+
+function sortComments(comments: Comment[]): Comment[] {
+  return [...comments].sort((a, b) => commentScore(b) - commentScore(a));
+}
 
 const PaperDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +42,8 @@ const PaperDetailPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState<{ id: number; name: string } | null>(null);
   const [replyText, setReplyText] = useState('');
+  const [paperBookmarked, setPaperBookmarked] = useState(false);
+  const [bookmarkedComments, setBookmarkedComments] = useState<Set<number>>(new Set());
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -39,7 +53,8 @@ const PaperDetailPage: React.FC = () => {
         commentsApi.list(parseInt(id)),
       ]);
       setPaper(paperRes.data.data);
-      setComments(commentsRes.data.data || []);
+      const rawComments: Comment[] = commentsRes.data.data || [];
+      setComments(sortComments(rawComments));
     } catch (error) {
       message.error('获取文献信息失败');
       navigate('/papers');
@@ -48,9 +63,28 @@ const PaperDetailPage: React.FC = () => {
     }
   }, [id, navigate]);
 
+  // Load bookmark status separately
+  const fetchBookmarkStatus = useCallback(async () => {
+    if (!id) return;
+    try {
+      const [isBookmarked, commentBookmarksRes] = await Promise.all([
+        bookmarksApi.isPaperBookmarked(parseInt(id)),
+        bookmarksApi.listCommentBookmarks(),
+      ]);
+      setPaperBookmarked(isBookmarked);
+      const ids = new Set<number>(
+        (commentBookmarksRes.data.data || []).map((c: any) => c.id as number)
+      );
+      setBookmarkedComments(ids);
+    } catch (_) {
+      //
+    }
+  }, [id]);
+
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    fetchBookmarkStatus();
+  }, [fetchData, fetchBookmarkStatus]);
 
   const handleDownload = async () => {
     try {
@@ -65,6 +99,40 @@ const PaperDetailPage: React.FC = () => {
       window.URL.revokeObjectURL(url);
     } catch {
       message.error('下载失败');
+    }
+  };
+
+  const handleTogglePaperBookmark = async () => {
+    try {
+      const res = await bookmarksApi.togglePaperBookmark(parseInt(id!));
+      setPaperBookmarked(res.data.data.bookmarked);
+      message.success(res.data.data.bookmarked ? '已收藏' : '已取消收藏');
+    } catch {
+      message.error('操作失败');
+    }
+  };
+
+  const handleToggleCommentBookmark = async (commentId: number) => {
+    try {
+      const res = await bookmarksApi.toggleCommentBookmark(commentId);
+      setBookmarkedComments((prev) => {
+        const next = new Set(prev);
+        if (res.data.data.bookmarked) next.add(commentId);
+        else next.delete(commentId);
+        return next;
+      });
+    } catch {
+      message.error('操作失败');
+    }
+  };
+
+  const handleToggleFeatured = async (commentId: number, current: boolean) => {
+    try {
+      await weeklyTasksApi.toggleFeatured(commentId, current);
+      message.success(current ? '已取消精选' : '已设为精选');
+      fetchData();
+    } catch {
+      message.error('操作失败');
     }
   };
 
@@ -131,7 +199,7 @@ const PaperDetailPage: React.FC = () => {
     }
   };
 
-  const renderComment = (comment: Comment, depth: number = 0) => (
+  const renderComment = (comment: Comment & { is_featured?: boolean }, depth: number = 0) => (
     <div
       key={comment.id}
       style={{
@@ -139,6 +207,9 @@ const PaperDetailPage: React.FC = () => {
         borderLeft: depth > 0 ? '2px solid #e8e8e8' : 'none',
         paddingLeft: depth > 0 ? 16 : 0,
         marginBottom: 16,
+        background: comment.is_featured && depth === 0 ? '#fffbe6' : 'transparent',
+        borderRadius: comment.is_featured && depth === 0 ? 8 : 0,
+        padding: comment.is_featured && depth === 0 ? '12px 16px' : undefined,
       }}
     >
       <div style={{ display: 'flex', gap: 12 }}>
@@ -149,16 +220,19 @@ const PaperDetailPage: React.FC = () => {
           size={36}
         />
         <div style={{ flex: 1 }}>
-          <div style={{ marginBottom: 4 }}>
-            <Text strong style={{ marginRight: 8 }}>{comment.user?.real_name}</Text>
+          <div style={{ marginBottom: 4, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+            <Text strong style={{ marginRight: 4 }}>{comment.user?.real_name}</Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              @{comment.user?.username} | {dayjs(comment.created_at).format('YYYY-MM-DD HH:mm')}
+              @{comment.user?.username} · {dayjs(comment.created_at).format('YYYY-MM-DD HH:mm')}
             </Text>
+            {comment.is_featured && (
+              <Tag color="gold" icon={<StarFilled />} style={{ fontSize: 11, padding: '0 6px' }}>精选</Tag>
+            )}
           </div>
           <Paragraph style={{ marginBottom: 8, whiteSpace: 'pre-wrap' }}>
             {comment.content}
           </Paragraph>
-          <Space size="middle">
+          <Space size="small">
             <Tooltip title="点赞">
               <Button
                 type="text"
@@ -183,6 +257,32 @@ const PaperDetailPage: React.FC = () => {
               >
                 回复
               </Button>
+            )}
+            <Tooltip title={bookmarkedComments.has(comment.id) ? '取消收藏' : '收藏评论'}>
+              <Button
+                type="text"
+                size="small"
+                icon={
+                  bookmarkedComments.has(comment.id)
+                    ? <SaveOutlined style={{ color: '#002147' }} />
+                    : <SaveOutlined />
+                }
+                onClick={() => handleToggleCommentBookmark(comment.id)}
+              />
+            </Tooltip>
+            {user?.role === 'admin' && depth === 0 && (
+              <Tooltip title={comment.is_featured ? '取消精选' : '设为精选'}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={
+                    comment.is_featured
+                      ? <StarFilled style={{ color: '#faad14' }} />
+                      : <StarOutlined />
+                  }
+                  onClick={() => handleToggleFeatured(comment.id, comment.is_featured ?? false)}
+                />
+              </Tooltip>
             )}
             {(comment.user_id === user?.id || user?.role === 'admin') && (
               <Popconfirm title="确定删除此评论？" onConfirm={() => handleDeleteComment(comment.id)}>
@@ -218,7 +318,7 @@ const PaperDetailPage: React.FC = () => {
           )}
 
           {/* Nested Replies */}
-          {comment.replies?.map((reply: Comment) => renderComment(reply, depth + 1))}
+          {comment.replies?.map((reply: any) => renderComment(reply, depth + 1))}
         </div>
       </div>
     </div>
@@ -269,9 +369,15 @@ const PaperDetailPage: React.FC = () => {
               )}
             </Space>
           </div>
-          <Space direction="vertical" size="middle">
+          <Space direction="vertical" size="middle" style={{ marginLeft: 16 }}>
             <Button type="primary" icon={<DownloadOutlined />} onClick={handleDownload} size="large">
               下载 PDF
+            </Button>
+            <Button
+              icon={paperBookmarked ? <SaveOutlined style={{ color: '#002147' }} /> : <SaveOutlined />}
+              onClick={handleTogglePaperBookmark}
+            >
+              {paperBookmarked ? '已收藏' : '收藏'}
             </Button>
             {paper.is_uploader && (
               <Popconfirm
@@ -334,21 +440,20 @@ const PaperDetailPage: React.FC = () => {
         </Card>
       )}
 
-      {/* Discussion Thread - GitHub Issue Style */}
+      {/* Discussion Thread */}
       <Card
         title={
           <span>
             <CommentOutlined style={{ marginRight: 8 }} />
-            讨论区 ({comments.length} 条评论)
+            讨论区（{comments.length} 条评论，按热度排序）
           </span>
         }
       >
-        {/* Comment List */}
         {comments.length === 0 ? (
           <Empty description="暂无评论，来发表第一条评论吧" style={{ padding: '24px 0' }} />
         ) : (
           <div style={{ marginBottom: 24 }}>
-            {comments.map((comment) => renderComment(comment))}
+            {comments.map((comment: any) => renderComment(comment))}
           </div>
         )}
 

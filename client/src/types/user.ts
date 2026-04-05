@@ -4,6 +4,7 @@ export interface User {
   email: string;
   real_name: string;
   student_id: string | null;
+  college: string | null;
   research_direction: string | null;
   avatar_url: string | null;
   role: 'admin' | 'member';

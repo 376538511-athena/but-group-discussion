@@ -1,8 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Input, Select, Card, Tag, Typography, Spin, Empty, Space, Pagination, Button, Popconfirm, message } from 'antd';
-import { SearchOutlined, FileTextOutlined, UploadOutlined, DeleteOutlined } from '@ant-design/icons';
+import {
+  Input, Select, Card, Tag, Typography, Spin, Empty, Space, Pagination,
+  Button, Popconfirm, message, Tooltip,
+} from 'antd';
+import {
+  SearchOutlined, FileTextOutlined, UploadOutlined, DeleteOutlined, SaveOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { papersApi } from '../api/papers';
+import { bookmarksApi } from '../api/bookmarks';
+import { useAuth } from '../context/AuthContext';
 import dayjs from 'dayjs';
 import { getErrorMessage } from '../lib/errors';
 
@@ -10,12 +17,14 @@ const { Title, Text, Paragraph } = Typography;
 
 const PaperListPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [papers, setPapers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('created_at');
   const [order, setOrder] = useState('desc');
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
 
   const fetchPapers = useCallback(async () => {
     setLoading(true);
@@ -27,9 +36,9 @@ const PaperListPage: React.FC = () => {
         sort,
         order,
       });
-      setPapers(res.data.data || []);
-      const total = res.data.meta?.total ?? 0;
-      setPagination((prev) => ({ ...prev, total }));
+      const data = res.data.data || [];
+      setPapers(data);
+      setPagination((prev) => ({ ...prev, total: res.data.meta?.total ?? 0 }));
     } catch (error) {
       console.error('Failed to fetch papers:', error);
     } finally {
@@ -37,9 +46,21 @@ const PaperListPage: React.FC = () => {
     }
   }, [pagination.page, pagination.limit, search, sort, order]);
 
+  const fetchBookmarks = useCallback(async () => {
+    try {
+      const res = await bookmarksApi.listPaperBookmarks();
+      const ids = new Set<number>((res.data.data || []).map((p: any) => p.id as number));
+      setBookmarkedIds(ids);
+    } catch (_) {}
+  }, []);
+
   useEffect(() => {
     fetchPapers();
   }, [fetchPapers]);
+
+  useEffect(() => {
+    fetchBookmarks();
+  }, [fetchBookmarks]);
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -56,6 +77,22 @@ const PaperListPage: React.FC = () => {
     }
   };
 
+  const handleToggleBookmark = async (e: React.MouseEvent, paperId: number) => {
+    e.stopPropagation();
+    try {
+      const res = await bookmarksApi.togglePaperBookmark(paperId);
+      const { bookmarked } = res.data.data;
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        if (bookmarked) next.add(paperId);
+        else next.delete(paperId);
+        return next;
+      });
+    } catch {
+      message.error('操作失败');
+    }
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -63,11 +100,7 @@ const PaperListPage: React.FC = () => {
           <FileTextOutlined style={{ marginRight: 8 }} />
           文献列表
         </Title>
-        <Button
-          type="primary"
-          icon={<UploadOutlined />}
-          onClick={() => navigate('/papers/upload')}
-        >
+        <Button type="primary" icon={<UploadOutlined />} onClick={() => navigate('/papers/upload')}>
           上传文献
         </Button>
       </div>
@@ -104,14 +137,13 @@ const PaperListPage: React.FC = () => {
         </Space>
       </Card>
 
-      {/* Paper List - Google Scholar Style */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60 }}><Spin size="large" /></div>
       ) : papers.length === 0 ? (
         <Empty description="暂无文献" />
       ) : (
         <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {papers.map((paper) => (
               <Card
                 key={paper.id}
@@ -129,7 +161,6 @@ const PaperListPage: React.FC = () => {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ flex: 1, marginRight: 16 }}>
-                    {/* Title - Scholar Blue Link */}
                     <Text
                       style={{
                         fontSize: 17,
@@ -142,8 +173,6 @@ const PaperListPage: React.FC = () => {
                     >
                       {paper.title}
                     </Text>
-
-                    {/* Authors - Green */}
                     <Text style={{ color: '#2e7d32', fontSize: 13, display: 'block', marginBottom: 4 }}>
                       {paper.authors}
                     </Text>
@@ -152,8 +181,6 @@ const PaperListPage: React.FC = () => {
                         期刊来源: {paper.journal_source}
                       </Text>
                     )}
-
-                    {/* Abstract preview */}
                     {paper.abstract && (
                       <Paragraph
                         type="secondary"
@@ -163,8 +190,6 @@ const PaperListPage: React.FC = () => {
                         {paper.abstract}
                       </Paragraph>
                     )}
-
-                    {/* Meta info */}
                     <Space size="middle">
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         上传者: {paper.uploader?.real_name}
@@ -178,10 +203,24 @@ const PaperListPage: React.FC = () => {
                     </Space>
                   </div>
 
-                  {/* Status Badge */}
-                  <div>
+                  <Space direction="vertical" size={8} align="end" onClick={(e) => e.stopPropagation()}>
+                    {/* Bookmark button */}
+                    <Tooltip title={bookmarkedIds.has(paper.id) ? '取消收藏' : '收藏'}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={
+                          <SaveOutlined
+                            style={{ color: bookmarkedIds.has(paper.id) ? '#002147' : undefined }}
+                          />
+                        }
+                        onClick={(e) => handleToggleBookmark(e, paper.id)}
+                      />
+                    </Tooltip>
+
+                    {/* Status / Actions */}
                     {paper.is_uploader ? (
-                      <Space direction="vertical" size={8} align="end">
+                      <>
                         <Tag color="blue">我上传的</Tag>
                         <Popconfirm
                           title="确定删除这篇文献吗？"
@@ -201,13 +240,13 @@ const PaperListPage: React.FC = () => {
                             删除
                           </Button>
                         </Popconfirm>
-                      </Space>
+                      </>
                     ) : paper.user_has_commented ? (
                       <Tag color="success">已参与 Engaged</Tag>
                     ) : (
                       <Tag color="error">待完成 Pending</Tag>
                     )}
-                  </div>
+                  </Space>
                 </div>
               </Card>
             ))}

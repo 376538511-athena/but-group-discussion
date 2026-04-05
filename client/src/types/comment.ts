@@ -9,6 +9,7 @@ export interface Comment {
   user: Pick<User, 'id' | 'real_name' | 'username' | 'avatar_url'>;
   like_count: number;
   user_has_liked: boolean;
+  is_featured?: boolean;
   replies: Comment[];
   created_at: string;
   updated_at: string;
