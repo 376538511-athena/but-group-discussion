@@ -2,14 +2,16 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   Card, Avatar, Typography, Tabs, List, Empty, Spin, Button,
 } from 'antd';
-import { UserOutlined, FileTextOutlined, SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { UserOutlined, FileTextOutlined, ReadOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { mapProfile, mapPaper } from '../lib/database';
+import { mapProfile } from '../lib/database';
 import { papersApi } from '../api/papers';
-import { bookmarksApi } from '../api/bookmarks';
+import { notesApi } from '../api/notes';
+import NoteList from '../components/notes/NoteList';
 import type { User } from '../types/user';
 import type { Paper } from '../types/paper';
+import type { Note } from '../types/note';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -60,17 +62,20 @@ const MemberPapersTab: React.FC<{ userId: string }> = ({ userId }) => {
   );
 };
 
-// ── 收藏文献 (read-only — shows bookmarked papers of this member) ─────────────
-// Note: RLS on paper_bookmarks is user-scoped, so this will show empty for other users.
-// We display a notice instead.
-const MemberBookmarksTab: React.FC = () => (
-  <Card>
-    <Empty
-      description="收藏内容仅本人可见"
-      image={Empty.PRESENTED_IMAGE_SIMPLE}
-    />
-  </Card>
-);
+const MemberNotesTab: React.FC<{ userId: string }> = ({ userId }) => {
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    notesApi
+      .listByUser(userId)
+      .then((res) => setNotes(res.data.data || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [userId]);
+
+  return <NoteList notes={notes} loading={loading} emptyText="该成员暂无笔记" />;
+};
 
 // ── Main MemberProfilePage ────────────────────────────────────────────────────
 const MemberProfilePage: React.FC = () => {
@@ -113,9 +118,9 @@ const MemberProfilePage: React.FC = () => {
       children: <MemberPapersTab userId={member.id} />,
     },
     {
-      key: 'bookmarks',
-      label: <><SaveOutlined />我的收藏</>,
-      children: <MemberBookmarksTab />,
+      key: 'notes',
+      label: <><ReadOutlined />我的笔记</>,
+      children: <MemberNotesTab userId={member.id} />,
     },
   ];
 

@@ -13,7 +13,8 @@
 2. 在 SQL Editor 中执行 [supabase-schema.sql](/Users/athenazeng/Documents/New%20project/inspect_ai_site/ai组会论文网/docs/supabase-schema.sql)。
 3. 在 Storage 中创建 bucket，名字默认用 `papers`。
 4. 再创建一个头像 bucket，建议命名为 `avatars`。
-5. 将需要的第一个管理员用户注册后，在 `profiles` 表中把该用户的 `role` 改成 `admin`。
+5. 再创建一个笔记 bucket，建议命名为 `notes`。
+6. 将需要的第一个管理员用户注册后，在 `profiles` 表中把该用户的 `role` 改成 `admin`。
 
 ## 现有项目增量调整
 
@@ -33,6 +34,10 @@ alter table public.profiles add column if not exists avatar_url text;
 3. 为 `avatars` bucket 新建两条 policy：
 - 上传：`authenticated` + `INSERT` + `bucket_id = 'avatars'`
 - 读取：`authenticated` + `SELECT` + `bucket_id = 'avatars'`
+
+4. 为 `notes` bucket 新建两条 policy：
+- 上传：`authenticated` + `INSERT` + `bucket_id = 'notes'`
+- 读取：`authenticated` + `SELECT` + `bucket_id = 'notes'`
 
 ## 关闭邮箱确认注册
 
@@ -65,6 +70,7 @@ alter table public.profiles add column if not exists avatar_url text;
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_SUPABASE_STORAGE_BUCKET`
 - `VITE_SUPABASE_AVATAR_BUCKET`
+- `VITE_SUPABASE_NOTES_BUCKET`
 
 本地开发可参考 [client/.env.example](/Users/athenazeng/Documents/New%20project/inspect_ai_site/ai组会论文网/client/.env.example)。
 

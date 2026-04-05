@@ -5,19 +5,22 @@ import {
 } from 'antd';
 import {
   UserOutlined, UploadOutlined, FileTextOutlined, SaveOutlined,
-  CalendarOutlined, DeleteOutlined,
+  CalendarOutlined, DeleteOutlined, ReadOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usersApi } from '../api/users';
 import { authApi } from '../api/auth';
 import { papersApi } from '../api/papers';
+import { notesApi } from '../api/notes';
 import { bookmarksApi } from '../api/bookmarks';
 import { leaveRequestsApi } from '../api/leaveRequests';
 import { getErrorMessage } from '../lib/errors';
+import NoteList from '../components/notes/NoteList';
 import dayjs from 'dayjs';
 import type { Paper } from '../types/paper';
 import type { LeaveRequest } from '../types/leaveRequest';
+import type { Note } from '../types/note';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -194,6 +197,22 @@ const MyPapersTab: React.FC = () => {
       )}
     </Card>
   );
+};
+
+// ─── My Notes Tab ──────────────────────────────────────────────────────────────
+const MyNotesTab: React.FC = () => {
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    notesApi
+      .listMine()
+      .then((res) => setNotes(res.data.data || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  return <NoteList notes={notes} loading={loading} emptyText="还没有上传过笔记" />;
 };
 
 // ─── Bookmarks Tab ─────────────────────────────────────────────────────────────
@@ -474,6 +493,7 @@ const ProfilePage: React.FC = () => {
   const tabItems = [
     { key: 'basic', label: <><UserOutlined />基本资料</>, children: <BasicInfoTab /> },
     { key: 'papers', label: <><FileTextOutlined />文献合集</>, children: <MyPapersTab /> },
+    { key: 'notes', label: <><ReadOutlined />我的笔记</>, children: <MyNotesTab /> },
     { key: 'bookmarks', label: <><SaveOutlined />我的收藏</>, children: <BookmarksTab /> },
     { key: 'leave', label: <><CalendarOutlined />请假申请</>, children: <LeaveTab /> },
   ];

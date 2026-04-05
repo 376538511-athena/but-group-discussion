@@ -8,7 +8,7 @@ import {
   FileTextOutlined, BarChartOutlined, TeamOutlined, UploadOutlined,
   UserOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
   BellOutlined, CheckSquareOutlined, UsergroupAddOutlined,
-  CheckCircleOutlined, CloseCircleOutlined,
+  CheckCircleOutlined, CloseCircleOutlined, ReadOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext';
 import { notificationsApi } from '../../api/notifications';
@@ -108,6 +108,7 @@ const AppLayout: React.FC = () => {
     { key: '/dashboard',      icon: <CheckSquareOutlined />,   label: '本周任务' },
     { key: '/papers',         icon: <FileTextOutlined />,      label: '文献列表' },
     { key: '/papers/upload',  icon: <UploadOutlined />,        label: '上传文献' },
+    { key: '/notes/upload',   icon: <ReadOutlined />,          label: '上传笔记' },
     { key: '/stats',          icon: <BarChartOutlined />,      label: '任务考勤' },
     { key: '/members',        icon: <UsergroupAddOutlined />,  label: 'BUT成员' },
     ...(user?.role === 'admin'

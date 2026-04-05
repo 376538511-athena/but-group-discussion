@@ -9,6 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const storageBucket = import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || 'papers';
 export const avatarBucket = import.meta.env.VITE_SUPABASE_AVATAR_BUCKET || 'avatars';
+export const noteBucket = import.meta.env.VITE_SUPABASE_NOTES_BUCKET || 'notes';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
