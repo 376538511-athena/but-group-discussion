@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button, Card, Empty, Image, List, Space, Tag, Typography } from 'antd';
-import { FileImageOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { Button, Card, Empty, Image, List, Popconfirm, Space, Tag, Typography } from 'antd';
+import { DeleteOutlined, FileImageOutlined, FilePdfOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Note } from '../../types/note';
 
@@ -24,7 +24,10 @@ const NoteList: React.FC<{
   notes: Note[];
   loading?: boolean;
   emptyText?: string;
-}> = ({ notes, loading = false, emptyText = '暂无笔记' }) => {
+  showDelete?: boolean;
+  onDelete?: (noteId: number) => void | Promise<void>;
+  deletingId?: number | null;
+}> = ({ notes, loading = false, emptyText = '暂无笔记', showDelete = false, onDelete, deletingId = null }) => {
   return (
     <Card loading={loading}>
       {notes.length === 0 ? (
@@ -37,7 +40,25 @@ const NoteList: React.FC<{
             const pdfAttachments = note.attachments.filter((attachment) => isPdf(attachment.mime_type));
 
             return (
-              <List.Item key={note.id}>
+              <List.Item
+                key={note.id}
+                extra={
+                  showDelete ? (
+                    <Popconfirm
+                      title="确定删除这条笔记？"
+                      description="删除后将同时移除上传的笔记文件。"
+                      onConfirm={() => onDelete?.(note.id)}
+                    >
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        loading={deletingId === note.id}
+                      />
+                    </Popconfirm>
+                  ) : null
+                }
+              >
                 <div style={{ width: '100%' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 8 }}>
                     <div>

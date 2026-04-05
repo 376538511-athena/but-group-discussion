@@ -203,8 +203,9 @@ const MyPapersTab: React.FC = () => {
 const MyNotesTab: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  useEffect(() => {
+  const fetchNotes = useCallback(() => {
     notesApi
       .listMine()
       .then((res) => setNotes(res.data.data || []))
@@ -212,7 +213,33 @@ const MyNotesTab: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  return <NoteList notes={notes} loading={loading} emptyText="还没有上传过笔记" />;
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
+
+  const handleDelete = async (noteId: number) => {
+    setDeletingId(noteId);
+    try {
+      await notesApi.delete(noteId);
+      setNotes((prev) => prev.filter((note) => note.id !== noteId));
+      message.success('笔记已删除');
+    } catch (error) {
+      message.error(getErrorMessage(error, '删除失败'));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <NoteList
+      notes={notes}
+      loading={loading}
+      emptyText="还没有上传过笔记"
+      showDelete
+      onDelete={handleDelete}
+      deletingId={deletingId}
+    />
+  );
 };
 
 // ─── Bookmarks Tab ─────────────────────────────────────────────────────────────
@@ -491,11 +518,11 @@ const ProfilePage: React.FC = () => {
   const { user } = useAuth();
 
   const tabItems = [
-    { key: 'basic', label: <><UserOutlined />基本资料</>, children: <BasicInfoTab /> },
-    { key: 'papers', label: <><FileTextOutlined />文献合集</>, children: <MyPapersTab /> },
-    { key: 'notes', label: <><ReadOutlined />我的笔记</>, children: <MyNotesTab /> },
-    { key: 'bookmarks', label: <><SaveOutlined />我的收藏</>, children: <BookmarksTab /> },
-    { key: 'leave', label: <><CalendarOutlined />请假申请</>, children: <LeaveTab /> },
+    { key: 'basic', label: <><UserOutlined style={{ marginRight: 6 }} />基本资料</>, children: <BasicInfoTab /> },
+    { key: 'papers', label: <><FileTextOutlined style={{ marginRight: 6 }} />文献合集</>, children: <MyPapersTab /> },
+    { key: 'notes', label: <><ReadOutlined style={{ marginRight: 6 }} />我的笔记</>, children: <MyNotesTab /> },
+    { key: 'bookmarks', label: <><SaveOutlined style={{ marginRight: 6 }} />我的收藏</>, children: <BookmarksTab /> },
+    { key: 'leave', label: <><CalendarOutlined style={{ marginRight: 6 }} />请假申请</>, children: <LeaveTab /> },
   ];
 
   return (

@@ -177,4 +177,43 @@ export const notesApi = {
       throw error;
     }
   },
+
+  async delete(id: number) {
+    const currentUser = await getCurrentProfile();
+    if (!currentUser) {
+      throw new Error('请先登录');
+    }
+
+    const { data, error } = await supabase
+      .from('notes')
+      .select('uploader_id, attachments')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message || '获取笔记失败');
+    }
+
+    if (data.uploader_id !== currentUser.id) {
+      throw new Error('只能删除自己上传的笔记');
+    }
+
+    const attachments = (data.attachments || []) as NoteAttachment[];
+    const filePaths = attachments.map((attachment) => attachment.path).filter(Boolean);
+
+    const { error: deleteError } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      throw new Error(deleteError.message || '删除笔记失败');
+    }
+
+    if (filePaths.length > 0) {
+      await supabase.storage.from(noteBucket).remove(filePaths);
+    }
+
+    return apiSuccess(null, undefined, '笔记已删除');
+  },
 };

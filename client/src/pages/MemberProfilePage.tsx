@@ -114,12 +114,12 @@ const MemberProfilePage: React.FC = () => {
   const tabItems = [
     {
       key: 'papers',
-      label: <><FileTextOutlined />文献合集</>,
+      label: <><FileTextOutlined style={{ marginRight: 6 }} />文献合集</>,
       children: <MemberPapersTab userId={member.id} />,
     },
     {
       key: 'notes',
-      label: <><ReadOutlined />我的笔记</>,
+      label: <><ReadOutlined style={{ marginRight: 6 }} />我的笔记</>,
       children: <MemberNotesTab userId={member.id} />,
     },
   ];
