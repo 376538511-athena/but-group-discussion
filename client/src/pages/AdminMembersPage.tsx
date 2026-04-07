@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Button, Tag, Space, Typography, message, Popconfirm, Modal, Select } from 'antd';
-import { TeamOutlined, CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
+import { Card, Table, Button, Tag, Typography, message, Popconfirm, Select, Space } from 'antd';
+import { TeamOutlined, CheckCircleOutlined, StopOutlined, UserOutlined } from '@ant-design/icons';
 import { usersApi } from '../api/users';
 import type { User } from '../types/user';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const AdminMembersPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -102,10 +102,19 @@ const AdminMembersPage: React.FC = () => {
 
   return (
     <div>
-      <Title level={4} style={{ marginBottom: 24 }}>
-        <TeamOutlined style={{ marginRight: 8 }} />
-        成员管理
-      </Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+        <Title level={4} style={{ margin: 0 }}>
+          <TeamOutlined style={{ marginRight: 8 }} />
+          成员管理
+        </Title>
+        <Space size={6} align="center">
+          <UserOutlined style={{ color: '#8c8c8c' }} />
+          <Text type="secondary">当前注册人数</Text>
+          <Text strong style={{ fontSize: 24, color: '#002147', lineHeight: 1 }}>
+            {users.length}
+          </Text>
+        </Space>
+      </div>
 
       <Card>
         <Table
