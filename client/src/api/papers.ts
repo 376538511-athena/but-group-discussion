@@ -209,8 +209,8 @@ export const papersApi = {
   async delete(id: number) {
     const currentUser = await getCurrentProfile();
     const paper = mapPaper(await getPaperByIdRaw(id));
-    if (!currentUser || currentUser.id !== paper.uploader_id) {
-      throw new Error('只能删除自己上传的文献');
+    if (!currentUser || (currentUser.id !== paper.uploader_id && currentUser.role !== 'admin')) {
+      throw new Error('只有上传者或管理员可以删除文献');
     }
     const { error } = await supabase.from('papers').delete().eq('id', id);
     if (error) {

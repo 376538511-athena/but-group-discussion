@@ -194,8 +194,8 @@ export const notesApi = {
       throw new Error(error?.message || '获取笔记失败');
     }
 
-    if (data.uploader_id !== currentUser.id) {
-      throw new Error('只能删除自己上传的笔记');
+    if (data.uploader_id !== currentUser.id && currentUser.role !== 'admin') {
+      throw new Error('只有上传者或管理员可以删除笔记');
     }
 
     const attachments = (data.attachments || []) as NoteAttachment[];

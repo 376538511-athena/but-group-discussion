@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Card, Avatar, Typography, Tabs, List, Empty, Spin, Button,
+  Card, Avatar, Typography, Tabs, List, Empty, Spin, Button, message,
 } from 'antd';
 import { UserOutlined, FileTextOutlined, ReadOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -9,6 +9,8 @@ import { mapProfile } from '../lib/database';
 import { papersApi } from '../api/papers';
 import { notesApi } from '../api/notes';
 import NoteList from '../components/notes/NoteList';
+import { useAuth } from '../context/AuthContext';
+import { getErrorMessage } from '../lib/errors';
 import type { User } from '../types/user';
 import type { Paper } from '../types/paper';
 import type { Note } from '../types/note';
@@ -62,24 +64,52 @@ const MemberPapersTab: React.FC<{ userId: string }> = ({ userId }) => {
   );
 };
 
-const MemberNotesTab: React.FC<{ userId: string }> = ({ userId }) => {
+const MemberNotesTab: React.FC<{ userId: string; canDelete?: boolean }> = ({ userId, canDelete = false }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  useEffect(() => {
+  const fetchNotes = () => {
     notesApi
       .listByUser(userId)
       .then((res) => setNotes(res.data.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchNotes();
   }, [userId]);
 
-  return <NoteList notes={notes} loading={loading} emptyText="该成员暂无笔记" />;
+  const handleDelete = async (noteId: number) => {
+    setDeletingId(noteId);
+    try {
+      await notesApi.delete(noteId);
+      setNotes((prev) => prev.filter((note) => note.id !== noteId));
+      message.success('笔记已删除');
+    } catch (error) {
+      message.error(getErrorMessage(error, '删除失败'));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <NoteList
+      notes={notes}
+      loading={loading}
+      emptyText="该成员暂无笔记"
+      showDelete={canDelete}
+      onDelete={handleDelete}
+      deletingId={deletingId}
+    />
+  );
 };
 
 // ── Main MemberProfilePage ────────────────────────────────────────────────────
 const MemberProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [member, setMember] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -120,7 +150,7 @@ const MemberProfilePage: React.FC = () => {
     {
       key: 'notes',
       label: <><ReadOutlined style={{ marginRight: 6 }} />我的笔记</>,
-      children: <MemberNotesTab userId={member.id} />,
+      children: <MemberNotesTab userId={member.id} canDelete={user?.role === 'admin'} />,
     },
   ];
 

@@ -379,7 +379,7 @@ const PaperDetailPage: React.FC = () => {
             >
               {paperBookmarked ? '已收藏' : '收藏'}
             </Button>
-            {paper.is_uploader && (
+            {(paper.is_uploader || user?.role === 'admin') && (
               <Popconfirm
                 title="确定删除这篇文献吗？"
                 description="该操作会删除 PDF 文件和文献记录。"
