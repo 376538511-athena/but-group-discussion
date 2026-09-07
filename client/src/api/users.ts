@@ -83,6 +83,9 @@ export const usersApi = {
           throw new Error(message);
         }
       }
+      if (error.message === 'Load failed' || error.message.includes('Failed to fetch')) {
+        throw new Error('重置密码服务暂时无法访问，请确认 Supabase 函数已部署并已更新配置');
+      }
       throw new Error(error.message || '重置密码失败');
     }
 
