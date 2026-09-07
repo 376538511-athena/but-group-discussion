@@ -70,11 +70,17 @@ export const usersApi = {
     });
 
     if (error) {
-      const response = (error as Error & { context?: Response }).context;
-      if (response) {
-        const body = await response.clone().json().catch(() => null);
-        if (body?.message) {
+      const context = (error as Error & { context?: unknown }).context;
+      if (typeof Response !== 'undefined' && context instanceof Response) {
+        const body = await context.clone().json().catch(() => null);
+        if (typeof body?.message === 'string') {
           throw new Error(body.message);
+        }
+      }
+      if (context && typeof context === 'object' && 'message' in context) {
+        const message = (context as { message?: unknown }).message;
+        if (typeof message === 'string') {
+          throw new Error(message);
         }
       }
       throw new Error(error.message || '重置密码失败');
