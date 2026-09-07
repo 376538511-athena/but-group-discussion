@@ -81,6 +81,17 @@ alter table public.profiles add column if not exists avatar_url text;
 - Build command: `npm run build`
 - Build output directory: `dist`
 
+## 管理员重置成员密码
+
+成员管理页的“重置密码”功能依赖 Supabase Edge Function：
+
+1. 在 Supabase CLI 登录并关联当前项目。
+2. 部署函数：`supabase functions deploy admin-reset-password`
+3. 确认函数环境中有 `SUPABASE_URL`、`SUPABASE_ANON_KEY`、`SUPABASE_SERVICE_ROLE_KEY`。
+4. 管理员登录网站后，可在“成员管理”中给普通成员设置新密码。
+
+注意：`SUPABASE_SERVICE_ROLE_KEY` 只允许放在 Supabase Edge Function 等服务端环境，不能配置到 Cloudflare Pages 的前端环境变量里。
+
 ## 注意事项
 
 - 当前登录方式已经切换为“邮箱 + 密码”。

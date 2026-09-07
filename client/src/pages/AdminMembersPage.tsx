@@ -1,14 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Button, Tag, Typography, message, Popconfirm, Select, Space } from 'antd';
-import { TeamOutlined, CheckCircleOutlined, StopOutlined, UserOutlined } from '@ant-design/icons';
+import { Card, Table, Button, Tag, Typography, message, Popconfirm, Select, Space, Modal, Form, Input } from 'antd';
+import { TeamOutlined, CheckCircleOutlined, StopOutlined, UserOutlined, KeyOutlined } from '@ant-design/icons';
 import { usersApi } from '../api/users';
 import type { User } from '../types/user';
 
 const { Title, Text } = Typography;
 
+interface ResetPasswordFormValues {
+  newPassword: string;
+  confirmPassword: string;
+}
+
 const AdminMembersPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [resettingUser, setResettingUser] = useState<User | null>(null);
+  const [resetPasswordForm] = Form.useForm<ResetPasswordFormValues>();
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -43,6 +52,33 @@ const AdminMembersPage: React.FC = () => {
       fetchUsers();
     } catch {
       message.error('操作失败');
+    }
+  };
+
+  const openResetPasswordModal = (user: User) => {
+    setResettingUser(user);
+    resetPasswordForm.resetFields();
+    setResetPasswordModalOpen(true);
+  };
+
+  const closeResetPasswordModal = () => {
+    setResetPasswordModalOpen(false);
+    setResettingUser(null);
+    resetPasswordForm.resetFields();
+  };
+
+  const handleResetPassword = async (values: ResetPasswordFormValues) => {
+    if (!resettingUser) return;
+
+    setResetPasswordLoading(true);
+    try {
+      await usersApi.resetPassword(resettingUser.id, values.newPassword);
+      message.success(`已重置 ${resettingUser.real_name} 的密码`);
+      closeResetPasswordModal();
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '重置密码失败');
+    } finally {
+      setResetPasswordLoading(false);
     }
   };
 
@@ -84,18 +120,30 @@ const AdminMembersPage: React.FC = () => {
       title: '操作',
       key: 'action',
       render: (_: any, record: User) => (
-        <Popconfirm
-          title={record.is_active ? '确定停用此成员？' : '确定启用此成员？'}
-          onConfirm={() => handleToggleStatus(record.id, record.is_active)}
-        >
-          <Button
-            type="link"
-            danger={record.is_active}
-            size="small"
+        <Space size={4}>
+          {record.role === 'member' && (
+            <Button
+              type="link"
+              size="small"
+              icon={<KeyOutlined />}
+              onClick={() => openResetPasswordModal(record)}
+            >
+              重置密码
+            </Button>
+          )}
+          <Popconfirm
+            title={record.is_active ? '确定停用此成员？' : '确定启用此成员？'}
+            onConfirm={() => handleToggleStatus(record.id, record.is_active)}
           >
-            {record.is_active ? '停用' : '启用'}
-          </Button>
-        </Popconfirm>
+            <Button
+              type="link"
+              danger={record.is_active}
+              size="small"
+            >
+              {record.is_active ? '停用' : '启用'}
+            </Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
@@ -125,6 +173,53 @@ const AdminMembersPage: React.FC = () => {
           pagination={{ pageSize: 20 }}
         />
       </Card>
+
+      <Modal
+        title={resettingUser ? `重置 ${resettingUser.real_name} 的密码` : '重置成员密码'}
+        open={resetPasswordModalOpen}
+        onCancel={closeResetPasswordModal}
+        onOk={() => resetPasswordForm.submit()}
+        confirmLoading={resetPasswordLoading}
+        okText="确认重置"
+        cancelText="取消"
+        destroyOnClose
+      >
+        <Form
+          form={resetPasswordForm}
+          layout="vertical"
+          onFinish={handleResetPassword}
+          preserve={false}
+        >
+          <Form.Item
+            label="新密码"
+            name="newPassword"
+            rules={[
+              { required: true, message: '请输入新密码' },
+              { min: 8, message: '密码至少 8 位' },
+            ]}
+          >
+            <Input.Password placeholder="请输入至少 8 位的新密码" autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item
+            label="确认新密码"
+            name="confirmPassword"
+            dependencies={['newPassword']}
+            rules={[
+              { required: true, message: '请再次输入新密码' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('newPassword') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('两次输入的密码不一致'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password placeholder="请再次输入新密码" autoComplete="new-password" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

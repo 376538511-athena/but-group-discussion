@@ -61,6 +61,32 @@ export const usersApi = {
     return apiSuccess(data);
   },
 
+  async resetPassword(id: string, newPassword: string) {
+    const { data, error } = await supabase.functions.invoke('admin-reset-password', {
+      body: {
+        userId: id,
+        newPassword,
+      },
+    });
+
+    if (error) {
+      const response = (error as Error & { context?: Response }).context;
+      if (response) {
+        const body = await response.clone().json().catch(() => null);
+        if (body?.message) {
+          throw new Error(body.message);
+        }
+      }
+      throw new Error(error.message || '重置密码失败');
+    }
+
+    if (data?.success === false) {
+      throw new Error(data.message || '重置密码失败');
+    }
+
+    return apiSuccess(data?.data ?? null, undefined, data?.message || '密码已重置');
+  },
+
   async uploadAvatar(file: File) {
     const currentUser = await getCurrentProfile();
     if (!currentUser) {
