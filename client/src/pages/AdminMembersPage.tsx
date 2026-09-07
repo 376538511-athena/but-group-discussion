@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Table, Button, Tag, Typography, message, Popconfirm, Select, Space, Modal, Form, Input } from 'antd';
-import { TeamOutlined, CheckCircleOutlined, StopOutlined, UserOutlined, KeyOutlined } from '@ant-design/icons';
+import { TeamOutlined, CheckCircleOutlined, StopOutlined, UserOutlined, KeyOutlined, SearchOutlined } from '@ant-design/icons';
 import { usersApi } from '../api/users';
 import type { User } from '../types/user';
 
@@ -17,7 +17,21 @@ const AdminMembersPage: React.FC = () => {
   const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
   const [resettingUser, setResettingUser] = useState<User | null>(null);
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [resetPasswordForm] = Form.useForm<ResetPasswordFormValues>();
+
+  const filteredUsers = useMemo(() => {
+    const keyword = searchKeyword.trim().toLowerCase();
+    if (!keyword) {
+      return users;
+    }
+
+    return users.filter((user) => {
+      return [user.real_name, user.username]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(keyword));
+    });
+  }, [users, searchKeyword]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -155,22 +169,32 @@ const AdminMembersPage: React.FC = () => {
           <TeamOutlined style={{ marginRight: 8 }} />
           成员管理
         </Title>
-        <Space size={6} align="center">
-          <UserOutlined style={{ color: '#8c8c8c' }} />
-          <Text type="secondary">当前注册人数</Text>
-          <Text strong style={{ fontSize: 24, color: '#002147', lineHeight: 1 }}>
-            {users.length}
-          </Text>
+        <Space size={24} align="center">
+          <Input
+            allowClear
+            prefix={<SearchOutlined style={{ color: '#8c8c8c' }} />}
+            placeholder="搜索姓名/账号"
+            value={searchKeyword}
+            onChange={(event) => setSearchKeyword(event.target.value)}
+            style={{ width: 260 }}
+          />
+          <Space size={6} align="center">
+            <UserOutlined style={{ color: '#8c8c8c' }} />
+            <Text type="secondary">当前注册人数</Text>
+            <Text strong style={{ fontSize: 24, color: '#002147', lineHeight: 1 }}>
+              {users.length}
+            </Text>
+          </Space>
         </Space>
       </div>
 
       <Card>
         <Table
-          dataSource={users}
+          dataSource={filteredUsers}
           columns={columns}
           rowKey="id"
           loading={loading}
-          pagination={{ pageSize: 20 }}
+          pagination={{ pageSize: 20, showTotal: (total) => `共 ${total} 位成员` }}
         />
       </Card>
 
